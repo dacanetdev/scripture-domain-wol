@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { scenarios, scriptures } from '../data/scriptures';
 import { GameContextType, GameState, Team, Response, RoundResult, GameResults, TeamRoundScore } from '../types';
-import { api, getSocket } from '../services/api';
+import { api, getSocket, isSocketConnected } from '../services/api';
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -123,6 +123,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       console.log('Socket disconnected');
       dispatch({ type: 'SET_CONNECTION', payload: false });
     });
+
+    // Check initial connection status
+    if (isSocketConnected()) {
+      dispatch({ type: 'SET_CONNECTION', payload: true });
+    }
 
     // Game state updates from server
     api.socket.onGameState((gameState) => {

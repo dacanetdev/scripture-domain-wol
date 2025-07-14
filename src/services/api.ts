@@ -18,10 +18,13 @@ let socket: Socket | null = null;
 export const getSocket = (): Socket => {
   if (!socket) {
     socket = io(API_BASE_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       autoConnect: true,
       timeout: 20000,
-      forceNew: true,
+      forceNew: false,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
     
     socket.on('connect', () => {
@@ -47,15 +50,28 @@ export const getSocket = (): Socket => {
     socket.on('reconnect_error', (error) => {
       console.error('Reconnection error:', error);
     });
+    
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log('Reconnection attempt:', attemptNumber);
+    });
+    
+    socket.on('reconnect_failed', () => {
+      console.error('Reconnection failed');
+    });
   }
   return socket;
 };
 
 export const disconnectSocket = () => {
   if (socket) {
+    socket.removeAllListeners();
     socket.disconnect();
     socket = null;
   }
+};
+
+export const isSocketConnected = (): boolean => {
+  return socket ? socket.connected : false;
 };
 
 // API functions

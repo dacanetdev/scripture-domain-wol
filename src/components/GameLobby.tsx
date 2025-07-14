@@ -7,7 +7,7 @@ import Header from './Header';
 const TEAM_EMOJIS = ['☀️', '📖', '🙏', '🌟', '❤️', '✨', '⚡', '🦁', '🐉', '🦅'];
 
 const GameLobby: React.FC = () => {
-  const { teams, gameId, isAdmin, gameState, joinTeam, connectToGame, isConnected } = useGame();
+  const { teams, gameId, isAdmin, gameState, joinTeam, connectToGame, isConnected, setAdmin } = useGame();
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -117,13 +117,23 @@ const GameLobby: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-4">
       <Header />
       <div className="max-w-md mx-auto">
-        {/* Game Code Display */}
-        {gameId && (
+        {/* Game Code Display - Only show when actively connected to a game */}
+        {gameId && isConnected && (
           <div className="card p-4 mb-4">
-            <p className="text-sm text-gray-600 mb-2">Código del Juego:</p>
+            <p className="text-sm text-gray-600 mb-2">Juego Conectado:</p>
             <p className="text-2xl font-mono font-bold text-dark-purple bg-light-gold rounded-lg p-2">
               {gameId.toUpperCase()}
             </p>
+            <p className="text-xs text-green-600 mt-1">✅ Conectado y listo para jugar</p>
+            <button
+              onClick={() => {
+                // Clear the game connection by refreshing the page
+                window.location.reload();
+              }}
+              className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+            >
+              🔄 Conectar a otro juego
+            </button>
           </div>
         )}
 
