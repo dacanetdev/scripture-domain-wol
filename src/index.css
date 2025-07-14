@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-light-gold to-victory-gold text-dark-purple font-bold py-4 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-gradient-to-r from-celestial-blue to-terrestrial-green text-white font-bold py-4 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  .card {
+    @apply bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/20;
+  }
+  
+  .scripture-card {
+    @apply bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 shadow-md border-2 border-transparent hover:border-light-gold transition-all duration-200 cursor-pointer;
+  }
+  
+  .scripture-card.selected {
+    @apply border-light-gold bg-gradient-to-br from-light-gold/20 to-victory-gold/20 animate-glow;
+  }
+  
+  .team-card {
+    @apply bg-gradient-to-r from-white/90 to-white/70 backdrop-blur-sm rounded-xl p-4 shadow-lg border-2 border-transparent;
+  }
+  
+  .timer {
+    @apply text-6xl font-bold text-light-gold animate-pulse-slow;
+  }
+  
+  .scenario-text {
+    @apply text-xl font-semibold text-white text-center leading-relaxed;
+  }
+} 
