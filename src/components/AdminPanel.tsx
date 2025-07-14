@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../context/GameContextBackend';
 import { Team, Response as TeamResponse, Scripture } from '../types';
 import Header from './Header';
 

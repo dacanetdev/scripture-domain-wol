@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../context/GameContextBackend';
 import Header from './Header';
 
 const ResultsScreen: React.FC = () => {
