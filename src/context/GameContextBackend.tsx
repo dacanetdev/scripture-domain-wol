@@ -124,6 +124,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
     // Game state updates from server
     api.socket.onGameState((gameState) => {
+      console.log('Received game state update:', gameState);
       dispatch({ type: 'SET_GAME_STATE', payload: gameState });
     });
 
@@ -189,6 +190,16 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   };
 
   const connectToGame = (gameId: string) => {
+    console.log('Connecting to game:', gameId);
+    
+    // Join the game room on the backend to receive updates
+    api.socket.joinGame({
+      gameId,
+      playerName: 'Viewer',
+      teamId: 'viewer',
+      isAdmin: false
+    });
+    
     dispatch({ type: 'SET_GAME_STATE', payload: { gameId } });
   };
 

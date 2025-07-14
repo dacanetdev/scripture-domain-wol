@@ -82,6 +82,7 @@ io.on('connection', (socket) => {
 
   // Join a game room
   socket.on('joinGame', ({ gameId, playerName, teamId, emoji, isAdmin }) => {
+    console.log('Player joining game:', { gameId, playerName, teamId, emoji, isAdmin });
     socket.join(gameId);
     
     // Store player info
@@ -114,6 +115,7 @@ io.on('connection', (socket) => {
     }
 
     // Send current game state to the player
+    console.log('Sending game state to player:', game);
     socket.emit('gameState', game);
     
     // Notify other players in the game
