@@ -86,53 +86,17 @@ const GameLobby: React.FC = () => {
       return;
     }
     
-    // Check if the entered code matches the current game (if one exists)
-    if (gameId && joinCode.trim().toLowerCase() !== gameId.slice(-6).toLowerCase()) {
-      setJoinError('Código de juego incorrecto. Verifica el código e intenta de nuevo.');
-      return;
-    }
+    // Use the game code as the gameId for backend
+    const gameId = joinCode.trim();
     
-    // If no game exists, check if the entered code corresponds to any existing game
-    if (!gameId) {
-      const validation = validateGameCode(joinCode);
-      if (validation.isValid && validation.gameId) {
-        // Found a matching game, allow join
-        joinTeam(selectedTeam, playerName.trim());
-        const playerData = { 
-          name: playerName.trim(), 
-          teamId: selectedTeam, 
-          gameId: validation.gameId
-        };
-        playerStorage.set(playerData);
-        gameSessionStorage.set(validation.gameId);
-        setPlayerName('');
-        setSelectedTeam(null);
-        setJoinCode('');
-        setJoinError('');
-        navigate('/game');
-        return;
-      } else {
-        // No matching game found
-        setJoinError('No se encontró un juego activo con ese código. Verifica el código o contacta al administrador.');
-        return;
-      }
-    }
-    
-    // Game exists and code matches, proceed with join
+    // Join the game using the backend API
     joinTeam(selectedTeam, playerName.trim(), newTeamEmoji);
-    const playerData = { 
-      name: playerName.trim(), 
-      teamId: selectedTeam, 
-      ...(gameId && { gameId }) // Only include gameId if it exists
-    };
-    // Use storage utilities for consistent data management
-    playerStorage.set(playerData);
-    if (gameId) gameSessionStorage.set(gameId);
+    
+    // Clear form and redirect
     setPlayerName('');
     setSelectedTeam(null);
     setJoinCode('');
     setJoinError('');
-    // Immediately redirect to /game after joining
     navigate('/game');
   };
 

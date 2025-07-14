@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { GameProvider } from './context/GameContext';
+import { GameProvider } from './context/GameContextBackend';
 import GameLobby from './components/GameLobby';
 import GameBoard from './components/GameBoard';
 import AdminPanel from './components/AdminPanel';

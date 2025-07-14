@@ -62,6 +62,9 @@ export interface GameContextType {
   gameResults: GameResults | null;
   lastUpdate?: number;
   playerSelections: { [playerId: string]: { selectedScripture: number | null; teamResponse: string } };
+  // Backend connection state
+  isConnected: boolean;
+  currentPlayer: { name: string; teamId: string } | null;
   startGame: (numTeams?: number) => void;
   startRound: () => void;
   joinTeam: (teamId: string, playerName: string, emoji?: string) => void;
