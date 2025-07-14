@@ -199,6 +199,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const connectToGame = (gameId: string) => {
     console.log('Connecting to game:', gameId);
     
+    // Check if socket is connected first
+    if (!isSocketConnected()) {
+      console.log('Socket not connected, attempting to connect...');
+    }
+    
     // Join the game room on the backend to receive updates
     api.socket.joinGame({
       gameId,
@@ -214,7 +219,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       if (!state.isConnected) {
         console.log('Connection timeout for game:', gameId);
       }
-    }, 5000);
+    }, 3000);
   };
 
   const joinTeam = (teamId: string, playerName: string, emoji?: string) => {

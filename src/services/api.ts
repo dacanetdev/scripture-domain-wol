@@ -18,13 +18,13 @@ let socket: Socket | null = null;
 export const getSocket = (): Socket => {
   if (!socket) {
     socket = io(API_BASE_URL, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       autoConnect: true,
-      timeout: 20000,
+      timeout: 5000,
       forceNew: false,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 500,
     });
     
     socket.on('connect', () => {

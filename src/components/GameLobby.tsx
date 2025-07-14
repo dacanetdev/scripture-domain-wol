@@ -58,6 +58,13 @@ const GameLobby: React.FC = () => {
       const gameId = joinCode.trim();
       setIsConnecting(true);
       connectToGame(gameId);
+      
+      // Set a timeout to stop connecting if it takes too long
+      const timeoutId = setTimeout(() => {
+        setIsConnecting(false);
+      }, 3000); // 3 second timeout
+      
+      return () => clearTimeout(timeoutId);
     } else {
       setIsConnecting(false);
     }
@@ -164,7 +171,9 @@ const GameLobby: React.FC = () => {
             {isConnecting && (
               <div className="text-blue-600 text-sm mb-2">
                 🔄 Conectando al juego...
-                {!isConnected && <span className="ml-2">(Verificando conexión...)</span>}
+                <div className="text-xs text-gray-500 mt-1">
+                  {!isConnected ? "Estableciendo conexión..." : "Conectado, verificando juego..."}
+                </div>
               </div>
             )}
             {!isConnecting && joinCode.trim().length >= 3 && !isConnected && (
