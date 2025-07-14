@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage } from '../utils/storage';
@@ -9,7 +9,7 @@ const DEBUG_MODE = process.env.REACT_APP_DEBUG_MODE === 'true';
 const TEAM_EMOJIS = ['☀️', '📖', '🙏', '🌟', '❤️', '✨', '⚡', '🦁', '🐉', '🦅'];
 
 const GameLobby: React.FC = () => {
-  const { teams, gameId, gameCode, isAdmin, gameState, joinTeam, connectToGame, isConnected, setAdmin, isInitializing } = useGame();
+  const { teams, gameId, gameCode, isAdmin, gameState, joinTeam, connectToGame, isConnected, isInitializing } = useGame();
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -17,7 +17,6 @@ const GameLobby: React.FC = () => {
   const [viewGameValid, setViewGameValid] = useState(false);
   const [newTeamEmoji, setNewTeamEmoji] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [pendingJoin, setPendingJoin] = useState<{ name: string; teamId: string; gameId: string } | null>(null);
   const navigate = useNavigate();
 
   // On mount, check if player is already joined and redirect if needed
@@ -85,7 +84,7 @@ const GameLobby: React.FC = () => {
     } else {
       setIsConnecting(false);
     }
-  }, [joinCode]); // Removed connectToGame from dependencies
+  }, [joinCode, connectToGame]); // Removed connectToGame from dependencies
 
   // Update connecting state and viewGameValid based on connection status
   useEffect(() => {
