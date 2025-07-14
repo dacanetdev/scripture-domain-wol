@@ -188,6 +188,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   };
 
+  const connectToGame = (gameId: string) => {
+    dispatch({ type: 'SET_GAME_STATE', payload: { gameId } });
+  };
+
   const joinTeam = (teamId: string, playerName: string, emoji?: string) => {
     if (state.gameId) {
       api.socket.joinGame({
@@ -278,6 +282,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     ...state,
     startGame,
     startRound,
+    connectToGame,
     joinTeam,
     selectScripture,
     updateResponse,

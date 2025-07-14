@@ -7,13 +7,14 @@ import Header from './Header';
 const TEAM_EMOJIS = ['☀️', '📖', '🙏', '🌟', '❤️', '✨', '⚡', '🦁', '🐉', '🦅'];
 
 const GameLobby: React.FC = () => {
-  const { teams, gameId, isAdmin, gameState, joinTeam } = useGame();
+  const { teams, gameId, isAdmin, gameState, joinTeam, connectToGame } = useGame();
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
   const [viewGameValid, setViewGameValid] = useState(false);
   const [newTeamEmoji, setNewTeamEmoji] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
   const navigate = useNavigate();
 
   // On mount, check if player is already joined and redirect if needed
@@ -50,28 +51,26 @@ const GameLobby: React.FC = () => {
     console.log('GameLobby rendered:', { isAdmin, teams: teams.length, gameId });
   }, [isAdmin, teams, gameId]);
 
-  // Helper function to validate if a game code corresponds to an existing game
-  const validateGameCode = (code: string): { isValid: boolean; gameId?: string } => {
-    const storedState = localStorage.getItem('scriptureDominionState');
-    if (storedState) {
-      const parsedState = JSON.parse(storedState);
-      if (parsedState.gameId && code.trim().toLowerCase() === parsedState.gameId.slice(-6).toLowerCase()) {
-        return { isValid: true, gameId: parsedState.gameId };
-      }
+  // Connect to backend when game code is entered
+  useEffect(() => {
+    if (joinCode.trim().length >= 3) {
+      // Connect to the game on backend using the game code as gameId
+      const gameId = joinCode.trim();
+      setIsConnecting(true);
+      connectToGame(gameId);
+      // Reset connecting state after a short delay
+      setTimeout(() => setIsConnecting(false), 1000);
     }
-    return { isValid: false };
-  };
+  }, [joinCode, connectToGame]);
 
-  // Helper function to validate game code for 'Ver Juego'
+  // Update viewGameValid when gameId changes
+  useEffect(() => {
+    setViewGameValid(joinCode.trim().length >= 3 && gameId === joinCode.trim());
+  }, [gameId, joinCode]);
+
+  // Helper function to validate game code for 'Ver Juego' - checks if game exists on backend
   const validateGameCodeForView = (code: string): boolean => {
-    const storedState = localStorage.getItem('scriptureDominionState');
-    if (storedState) {
-      const parsed = JSON.parse(storedState);
-      if (parsed.gameId && code.trim().toLowerCase() === parsed.gameId.slice(-6).toLowerCase()) {
-        return true;
-      }
-    }
-    return false;
+    return code.trim().length >= 3 && gameId === code.trim();
   };
 
   // Real-time validation of game code
@@ -92,6 +91,13 @@ const GameLobby: React.FC = () => {
     // Join the game using the backend API
     joinTeam(selectedTeam, playerName.trim(), newTeamEmoji);
     
+    // Store player data locally for persistence
+    playerStorage.set({
+      name: playerName.trim(),
+      teamId: selectedTeam,
+      gameId: gameId
+    });
+    
     // Clear form and redirect
     setPlayerName('');
     setSelectedTeam(null);
@@ -105,11 +111,11 @@ const GameLobby: React.FC = () => {
       <Header />
       <div className="max-w-md mx-auto">
         {/* Game Code Display */}
-        {gameId && gameSessionStorage.get() === gameId && (
+        {gameId && (
           <div className="card p-4 mb-4">
             <p className="text-sm text-gray-600 mb-2">Código del Juego:</p>
             <p className="text-2xl font-mono font-bold text-dark-purple bg-light-gold rounded-lg p-2">
-              {gameId.slice(-6).toUpperCase()}
+              {gameId.toUpperCase()}
             </p>
           </div>
         )}
@@ -128,17 +134,25 @@ const GameLobby: React.FC = () => {
               onChange={e => {
                 setJoinCode(e.target.value);
                 setJoinError('');
-                setViewGameValid(e.target.value.length === 6 && validateGameCodeForView(e.target.value));
+                setViewGameValid(e.target.value.length >= 3 && gameId === e.target.value.trim());
               }}
-              placeholder="Código del Juego"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2"
-              maxLength={6}
+              placeholder="Código del Juego (mínimo 3 caracteres)"
+              className={`w-full px-4 py-3 border rounded-lg mb-2 ${
+                isConnecting ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+              }`}
+              maxLength={20}
             />
+            {isConnecting && (
+              <div className="text-blue-600 text-sm mb-2">🔄 Conectando al juego...</div>
+            )}
             {joinError && <div className="text-red-600 mb-2">{joinError}</div>}
             {/* Ver Juego button for projection */}
             {viewGameValid && (
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => {
+                  connectToGame(joinCode.trim());
+                  navigate('/dashboard');
+                }}
                 className="btn-secondary w-full text-xl py-3 mb-2 bg-yellow-400 text-dark-purple font-bold rounded-lg shadow hover:bg-yellow-500"
                 style={{ marginBottom: '1rem' }}
               >

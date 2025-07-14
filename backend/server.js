@@ -11,8 +11,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
   }
 });
 
@@ -20,7 +21,7 @@ const io = socketIo(server, {
 app.use(helmet());
 app.use(compression());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: "*",
   credentials: true
 }));
 app.use(express.json());
@@ -68,6 +69,16 @@ const updateGame = (gameId, updates) => {
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+  console.log('Socket transport:', socket.conn.transport.name);
+  
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
+  
+  socket.on('disconnect', (reason) => {
+    console.log('User disconnected:', socket.id, 'Reason:', reason);
+    players.delete(socket.id);
+  });
 
   // Join a game room
   socket.on('joinGame', ({ gameId, playerName, teamId, emoji, isAdmin }) => {

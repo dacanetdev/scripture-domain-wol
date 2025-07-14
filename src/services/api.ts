@@ -20,6 +20,20 @@ export const getSocket = (): Socket => {
     socket = io(API_BASE_URL, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      timeout: 20000,
+      forceNew: true,
+    });
+    
+    socket.on('connect', () => {
+      console.log('Connected to server:', socket!.id);
+    });
+    
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+    });
+    
+    socket.on('disconnect', (reason) => {
+      console.log('Disconnected from server:', reason);
     });
   }
   return socket;

@@ -67,6 +67,7 @@ export interface GameContextType {
   currentPlayer: { name: string; teamId: string } | null;
   startGame: (numTeams?: number) => void;
   startRound: () => void;
+  connectToGame: (gameId: string) => void;
   joinTeam: (teamId: string, playerName: string, emoji?: string) => void;
   selectScripture: (scriptureId: number) => void;
   updateResponse: (response: string) => void;
