@@ -24,7 +24,7 @@ const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     setAdmin(true);
-  }, []); // Only run once on mount
+  }, [setAdmin]); // Include setAdmin in dependencies
 
   // Safety check to ensure all variables are defined
   if (!teamRoundScores) {
@@ -115,7 +115,6 @@ const AdminPanel: React.FC = () => {
       ).length;
       
       if (roundTimer > 0) {
-        const remainingTeams = teams.length - teamsWithResponses;
         return `⏳ Esperando respuestas (${formatTime(roundTimer)})`;
       } else {
         const unscoredResponses = teamsWithResponses - teamsWithScores;

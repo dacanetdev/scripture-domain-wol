@@ -52,7 +52,7 @@ const GameBoard: React.FC = () => {
 
       return () => clearInterval(interval);
     }
-  }, [gameState]); // Remove localTimer from dependencies to prevent interval restart
+  }, [gameState, localTimer]); // Include localTimer in dependencies
 
   // On mount, check for player info and joining state
   useEffect(() => {
