@@ -7,7 +7,7 @@ import Header from './Header';
 const TEAM_EMOJIS = ['☀️', '📖', '🙏', '🌟', '❤️', '✨', '⚡', '🦁', '🐉', '🦅'];
 
 const GameLobby: React.FC = () => {
-  const { teams, gameId, isAdmin, gameState, joinTeam, connectToGame } = useGame();
+  const { teams, gameId, isAdmin, gameState, joinTeam, connectToGame, isConnected } = useGame();
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -58,10 +58,17 @@ const GameLobby: React.FC = () => {
       const gameId = joinCode.trim();
       setIsConnecting(true);
       connectToGame(gameId);
-      // Reset connecting state after a short delay
-      setTimeout(() => setIsConnecting(false), 1000);
+    } else {
+      setIsConnecting(false);
     }
   }, [joinCode, connectToGame]);
+
+  // Update connecting state based on actual connection status
+  useEffect(() => {
+    if (isConnected && gameId === joinCode.trim()) {
+      setIsConnecting(false);
+    }
+  }, [isConnected, gameId, joinCode]);
 
   // Update viewGameValid when gameId changes
   useEffect(() => {
@@ -143,7 +150,16 @@ const GameLobby: React.FC = () => {
               maxLength={20}
             />
             {isConnecting && (
-              <div className="text-blue-600 text-sm mb-2">🔄 Conectando al juego...</div>
+              <div className="text-blue-600 text-sm mb-2">
+                🔄 Conectando al juego...
+                {!isConnected && <span className="ml-2">(Verificando conexión...)</span>}
+              </div>
+            )}
+            {!isConnecting && joinCode.trim().length >= 3 && !isConnected && (
+              <div className="text-red-600 text-sm mb-2">❌ Error de conexión. Verifica el código del juego.</div>
+            )}
+            {!isConnecting && joinCode.trim().length >= 3 && isConnected && gameId === joinCode.trim() && (
+              <div className="text-green-600 text-sm mb-2">✅ Conectado al juego</div>
             )}
             {joinError && <div className="text-red-600 mb-2">{joinError}</div>}
             {/* Ver Juego button for projection */}

@@ -115,10 +115,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
     // Connection events
     socket.on('connect', () => {
+      console.log('Socket connected with ID:', socket.id);
       dispatch({ type: 'SET_CONNECTION', payload: true });
     });
 
     socket.on('disconnect', () => {
+      console.log('Socket disconnected');
       dispatch({ type: 'SET_CONNECTION', payload: false });
     });
 
@@ -201,6 +203,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     });
     
     dispatch({ type: 'SET_GAME_STATE', payload: { gameId } });
+    
+    // Set a timeout to reset connection state if no response
+    setTimeout(() => {
+      if (!state.isConnected) {
+        console.log('Connection timeout for game:', gameId);
+      }
+    }, 5000);
   };
 
   const joinTeam = (teamId: string, playerName: string, emoji?: string) => {

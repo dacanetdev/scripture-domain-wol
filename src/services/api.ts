@@ -35,6 +35,18 @@ export const getSocket = (): Socket => {
     socket.on('disconnect', (reason) => {
       console.log('Disconnected from server:', reason);
     });
+    
+    socket.on('connect_timeout', () => {
+      console.error('Connection timeout');
+    });
+    
+    socket.on('reconnect', (attemptNumber) => {
+      console.log('Reconnected after', attemptNumber, 'attempts');
+    });
+    
+    socket.on('reconnect_error', (error) => {
+      console.error('Reconnection error:', error);
+    });
   }
   return socket;
 };
