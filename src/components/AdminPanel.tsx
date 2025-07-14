@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGame } from '../context/GameContextBackend';
 import { Team, Response as TeamResponse, Scripture } from '../types';
 import Header from './Header';
@@ -32,6 +32,9 @@ const AdminPanel: React.FC = () => {
   const [joinCode, setJoinCode] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [confirmAdvance, setConfirmAdvance] = useState(false);
+  
+  // Add ref to prevent multiple connection attempts
+  const connectionAttemptRef = useRef<string | null>(null);
 
   // Helper function to split scenario into scripture reference and case
   const splitScenario = (scenario: string) => {
@@ -75,18 +78,27 @@ const AdminPanel: React.FC = () => {
     if (joinCode.trim().length >= 3) {
       const trimmedCode = joinCode.trim();
       
+      // Prevent multiple connection attempts for the same code
+      if (connectionAttemptRef.current === trimmedCode) {
+        return;
+      }
+      
       // Check if this admin is the original creator of this game
       const adminData = adminStorage.get();
       const isOriginalCreator = adminData && adminData.gameCode === trimmedCode;
       
-      console.log('Connecting to game:', { 
+      console.log('AdminPanel: Connecting to game:', { 
         joinCode: trimmedCode, 
         adminData, 
         isOriginalCreator,
         currentGameId: gameId,
-        currentGameCode: gameCode
+        currentGameCode: gameCode,
+        isInitializing,
+        isConnected
       });
       
+      // Mark this connection attempt
+      connectionAttemptRef.current = trimmedCode;
       setIsConnecting(true);
       
       if (isOriginalCreator) {
@@ -101,14 +113,21 @@ const AdminPanel: React.FC = () => {
       
       // Set a timeout to stop connecting if it takes too long
       const timeoutId = setTimeout(() => {
+        console.log('AdminPanel: Connection timeout reached');
         setIsConnecting(false);
+        connectionAttemptRef.current = null;
       }, 5000); // 5 second timeout
       
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        connectionAttemptRef.current = null;
+      };
     } else {
       setIsConnecting(false);
+      connectionAttemptRef.current = null;
     }
-  }, [joinCode, connectToGameAsAdmin, gameId, gameCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joinCode, gameId, gameCode, isInitializing, isConnected]);
 
   // Update connecting state based on connection status
   useEffect(() => {
@@ -117,10 +136,20 @@ const AdminPanel: React.FC = () => {
     // Check if we're connected and have a game
     const isGameConnected = isConnected && !!gameId;
     
+    console.log('AdminPanel: Connection status update:', {
+      isGameConnected,
+      isConnected,
+      gameId,
+      gameCode,
+      joinCode: trimmedCode,
+      isInitializing
+    });
+    
     // If we have a game and we're connected, stop connecting
     if (isGameConnected) {
       console.log('Game connected successfully:', { gameId, gameCode, joinCode: trimmedCode });
       setIsConnecting(false);
+      connectionAttemptRef.current = null;
       
       // Save admin info if we don't have it already
       const adminData = adminStorage.get();
@@ -134,14 +163,10 @@ const AdminPanel: React.FC = () => {
     if (!isConnected && trimmedCode.length >= 3) {
       setIsConnecting(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, gameId, gameCode, joinCode]);
 
-  // Connect to game if we have a gameId
-  useEffect(() => {
-    if (gameId) {
-      // The context should already be connected, but let's make sure
-    }
-  }, [gameId]);
+
 
   // Show loading state while initializing - MUST be after all hooks
   // But allow admin to proceed if there's no game yet (for starting new games)
@@ -444,19 +469,19 @@ const AdminPanel: React.FC = () => {
                             Puntos Totales (0-3)
                           </label>
                           <div className="flex space-x-2">
-                            {[0, 1, 2, 3].map(score => {
+                            {[0, 1, 2, 3].map(points => {
                               const currentScore = (teamRoundScores || []).find(s => s.teamId === team.id && s.roundNumber === currentRound)?.totalScore || 0;
                               return (
                                 <button
-                                  key={score}
-                                  onClick={() => handlePointsChange(team.id, score)}
+                                  key={points}
+                                  onClick={() => handlePointsChange(team.id, points)}
                                   className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all ${
-                                    currentScore === score
+                                    currentScore === points
                                       ? 'border-light-gold bg-light-gold text-dark-purple'
                                       : 'border-gray-300 hover:border-light-gold'
                                   }`}
                                 >
-                                  {score}
+                                  {points}
                                 </button>
                               );
                             })}

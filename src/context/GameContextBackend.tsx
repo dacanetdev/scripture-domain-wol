@@ -156,6 +156,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const stateRef = React.useRef(state);
   stateRef.current = state;
 
+  // Add ref to track connection attempts to prevent multiple simultaneous connections
+  const connectionAttemptRef = React.useRef<string | null>(null);
+  const connectionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   // Socket.IO connection and event handling
   useEffect(() => {
     const socket = getSocket();
@@ -211,14 +215,52 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         console.log('This appears to be the initial state sync response - will set isInitializing to false');
       }
       
-      // If admin is connecting to a game, save the admin information
-      if (stateRef.current.isAdmin && gameState.id && gameState.gameCode && !stateRef.current.gameId) {
-        console.log('Admin connecting to game, saving admin info:', { gameId: gameState.id, gameCode: gameState.gameCode });
-        adminStorage.set({ isAdmin: true, gameId: gameState.id, gameCode: gameState.gameCode });
+      // Clear connection attempt ref when we receive a valid game state
+      if (gameState.id && connectionAttemptRef.current === gameState.id) {
+        console.log('Clearing connection attempt ref for successful connection:', gameState.id);
+        connectionAttemptRef.current = null;
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
       }
       
-      console.log('Dispatching SET_GAME_STATE - this should set isInitializing to false');
-      dispatch({ type: 'SET_GAME_STATE', payload: gameState });
+      // If admin is connecting to a game, save the admin information
+      // Check if this is a new admin connection (either no gameId or different gameId)
+      if (stateRef.current.isAdmin && gameState.id && gameState.gameCode) {
+        const currentGameId = stateRef.current.gameId;
+        const isNewConnection = !currentGameId || currentGameId !== gameState.id;
+        
+        if (isNewConnection) {
+          console.log('Admin connecting to game, saving admin info:', { 
+            gameId: gameState.id, 
+            gameCode: gameState.gameCode,
+            currentGameId,
+            isNewConnection
+          });
+          adminStorage.set({ isAdmin: true, gameId: gameState.id, gameCode: gameState.gameCode });
+        } else {
+          console.log('Admin already connected to this game:', { gameId: gameState.id });
+        }
+      }
+      
+      // Ensure we have a valid game state before dispatching
+      if (gameState.id && gameState.gameCode) {
+        console.log('Dispatching SET_GAME_STATE - this should set isInitializing to false');
+        
+        // Always dispatch the game state, which will set isInitializing to false
+        dispatch({ type: 'SET_GAME_STATE', payload: gameState });
+        
+        // Double-check that isInitializing is set to false
+        setTimeout(() => {
+          if (stateRef.current.isInitializing) {
+            console.log('Force setting isInitializing to false after game state received');
+            dispatch({ type: 'SET_INITIALIZING', payload: false });
+          }
+        }, 100);
+      } else {
+        console.log('Received invalid game state, not dispatching:', gameState);
+      }
     };
     
     socket.on('gameState', handleGameState);
@@ -237,6 +279,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       // Remove socket listeners properly
       socket.off('gameState', handleGameState);
       socket.off('playerJoined', handlePlayerJoined);
+      // Clear connection refs
+      connectionAttemptRef.current = null;
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
       // Don't disconnect on cleanup, let the socket stay connected
     };
   }, []);
@@ -348,6 +396,21 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const connectToGameAsAdmin = (gameId: string) => {
     console.log('Connecting to game as admin:', gameId);
     
+    // Prevent multiple simultaneous connection attempts
+    if (connectionAttemptRef.current === gameId) {
+      console.log('Connection attempt already in progress for:', gameId);
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+    
+    // Mark this connection attempt
+    connectionAttemptRef.current = gameId;
+    
     // Set initializing to true when connecting to a new game
     dispatch({ type: 'SET_INITIALIZING', payload: true });
     
@@ -382,9 +445,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }, 3000);
     
     // Set a timeout to prevent infinite loading state
-    setTimeout(() => {
+    connectionTimeoutRef.current = setTimeout(() => {
       console.log('Setting isInitializing to false due to timeout (connectToGameAsAdmin)');
       dispatch({ type: 'SET_INITIALIZING', payload: false });
+      connectionAttemptRef.current = null;
+      connectionTimeoutRef.current = null;
     }, 5000); // 5 second timeout for initialization
   };
 
