@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage } from '../utils/storage';
@@ -61,19 +61,22 @@ const GameLobby: React.FC = () => {
     } else {
       setIsConnecting(false);
     }
-  }, [joinCode, connectToGame]);
+  }, [joinCode]); // Removed connectToGame from dependencies
 
-  // Update connecting state based on actual connection status
+  // Update connecting state and viewGameValid based on connection status
   useEffect(() => {
-    if (isConnected && gameId === joinCode.trim()) {
+    const trimmedCode = joinCode.trim();
+    const isValidLength = trimmedCode.length >= 3;
+    const isGameConnected = isConnected && gameId === trimmedCode;
+    
+    // Update connecting state
+    if (isGameConnected) {
       setIsConnecting(false);
     }
+    
+    // Update viewGameValid
+    setViewGameValid(isValidLength && gameId === trimmedCode);
   }, [isConnected, gameId, joinCode]);
-
-  // Update viewGameValid when gameId changes
-  useEffect(() => {
-    setViewGameValid(joinCode.trim().length >= 3 && gameId === joinCode.trim());
-  }, [gameId, joinCode]);
 
   // Helper function to validate game code for 'Ver Juego' - checks if game exists on backend
   const validateGameCodeForView = (code: string): boolean => {
@@ -151,7 +154,6 @@ const GameLobby: React.FC = () => {
               onChange={e => {
                 setJoinCode(e.target.value);
                 setJoinError('');
-                setViewGameValid(e.target.value.length >= 3 && gameId === e.target.value.trim());
               }}
               placeholder="Código del Juego (mínimo 3 caracteres)"
               className={`w-full px-4 py-3 border rounded-lg mb-2 ${
