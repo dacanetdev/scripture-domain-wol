@@ -21,11 +21,13 @@ const ResultsScreen: React.FC = () => {
   if (!gameResults) return null;
 
   // Calculate final rankings
-  const teamRankings = teams.map(team => ({
-    ...team,
-    totalScore: gameResults[team.id] || 0,
-    responseCount: responses.filter(r => r.teamId === team.id).length
-  })).sort((a, b) => b.totalScore - a.totalScore);
+  const teamRankings = teams
+    .filter(team => team.id !== 'admin' && team.id !== 'viewer') // Filter out admin and viewer teams
+    .map(team => ({
+      ...team,
+      totalScore: gameResults[team.id] || 0,
+      responseCount: responses.filter(r => r.teamId === team.id).length
+    })).sort((a, b) => b.totalScore - a.totalScore);
 
   const winner = teamRankings[0];
   const isTie = teamRankings.length > 1 && teamRankings[0].totalScore === teamRankings[1].totalScore;
@@ -69,7 +71,7 @@ ${isTie ? '🤝 ¡EMPATE!' : ''}
 📊 ESTADÍSTICAS DEL JUEGO:
 - Total de Rondas: ${scenarios.length}
 - Total de Respuestas: ${responses.length}
-- Equipos Participantes: ${teams.length}
+- Equipos Participantes: ${teamRankings.length}
 
 Generado el ${new Date().toLocaleDateString()}`;
 
@@ -170,7 +172,7 @@ Generado el ${new Date().toLocaleDateString()}`;
               <div className="text-gray-500">Respuestas</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800">{teams.length}</div>
+              <div className="text-2xl font-bold text-gray-800">{teamRankings.length}</div>
               <div className="text-gray-500">Equipos</div>
             </div>
             <div className="text-center">

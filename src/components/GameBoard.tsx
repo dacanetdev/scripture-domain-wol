@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContextBackend';
-import { playerStorage, gameSessionStorage } from '../utils/storage';
+import { playerStorage, gameSessionStorage, adminStorage } from '../utils/storage';
 import Header from './Header';
 
 const GameBoard: React.FC = () => {
@@ -14,48 +14,19 @@ const GameBoard: React.FC = () => {
     submitResponse,
     responses,
     roundTimer,
-    lastTimerUpdate,
     gameId,
-    isAdmin,
-    startRound,
+    gameCode,
     setPlayerSelection,
     playerSelections,
-    currentPlayer
+    currentPlayer,
+    isInitializing
   } = useGame();
   const navigate = useNavigate();
   const [player, setPlayer] = useState<{ name: string; teamId: string } | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
-  
-  // Local timer state for smooth updates
-  const [localTimer, setLocalTimer] = useState(roundTimer);
-  const [lastSyncTime, setLastSyncTime] = useState(lastTimerUpdate);
 
-  // Sync with context timer when it changes (e.g., from storage events)
-  useEffect(() => {
-    if (lastTimerUpdate !== lastSyncTime) {
-      setLocalTimer(roundTimer);
-      setLastSyncTime(lastTimerUpdate);
-    }
-  }, [roundTimer, lastTimerUpdate, lastSyncTime]);
-
-  // Local timer countdown for smooth display
-  useEffect(() => {
-    if (gameState === 'round' && localTimer > 0) {
-      const interval = setInterval(() => {
-        setLocalTimer(prev => {
-          if (prev <= 1) {
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [gameState, localTimer]); // Include localTimer in dependencies
-
-  // Check if player is connected and has joined a game
+  // All hooks must be called before any conditional returns
   useEffect(() => {
     if (!currentPlayer) {
       navigate('/lobby');
@@ -64,23 +35,41 @@ const GameBoard: React.FC = () => {
     setPlayer(currentPlayer);
   }, [currentPlayer, navigate]);
 
-  // Debug: log teams and join status
   useEffect(() => {
     console.log('GameBoard teams:', teams);
     console.log('isPlayerJoined:', playerStorage.isJoined(teams, gameId));
     console.log('player:', player);
   }, [teams, player, gameId]);
 
-  // Always redirect to the correct screen based on gameState
   useEffect(() => {
-    if (gameState === 'lobby') {
-      navigate('/lobby');
-    } else if (gameState === 'results') {
+    // Check if user is admin
+    const isAdmin = adminStorage.isAdmin();
+    const adminGameInfo = adminStorage.getGameInfo();
+    const isAdminInGame = isAdmin && adminGameInfo && adminGameInfo.gameId === gameId;
+    
+    // Only redirect if player is not joined or if game state changes to something other than lobby
+    const isPlayerJoined = playerStorage.isJoined(teams, gameId);
+    const isUserJoined = isPlayerJoined || isAdminInGame;
+    
+    console.log('GameBoard navigation check:', {
+      gameState,
+      isPlayerJoined,
+      isAdmin,
+      isAdminInGame,
+      isUserJoined,
+      gameId,
+      adminGameInfo
+    });
+    
+    if (gameState === 'results') {
       navigate('/results');
     } else if (gameState === 'playing' || gameState === 'round') {
       navigate('/game');
+    } else if (gameState === 'lobby' && !isUserJoined) {
+      navigate('/lobby');
     }
-  }, [gameState, navigate]);
+    // If gameState is 'lobby' and user has joined (as player or admin), stay on /game
+  }, [gameState, navigate, teams, gameId]);
 
   // Handle join by code (for future extensibility)
   const handleJoinByCode = () => {
@@ -97,7 +86,19 @@ const GameBoard: React.FC = () => {
     }
   };
 
-  // Check if player exists but team is not found yet (loading state)
+  // After all hooks, do your conditional returns:
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green">
+        <div className="card p-8 max-w-md w-full text-center">
+          <div className="animate-spin text-4xl mb-4">⏳</div>
+          <div className="text-lg text-dark-purple font-bold mb-2">Sincronizando con el juego...</div>
+          <div className="text-gray-600">Conectando con el estado actual del juego...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!player) {
     const playerInfo = playerStorage.get();
     if (playerInfo) {
@@ -137,10 +138,7 @@ const GameBoard: React.FC = () => {
     );
   }
 
-  // Find the player's team
   const team = teams.find(t => t.id === player.teamId);
-  
-  // If player exists but team is not found, show loading state
   if (!team) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green">
@@ -161,6 +159,20 @@ const GameBoard: React.FC = () => {
   const playerId = `${player.name}-${team.id}`;
   const playerSelection = playerSelections[playerId] || { selectedScripture: null, teamResponse: '' };
 
+  // Helper function to split scenario into scripture reference and case
+  const splitScenario = (scenario: string) => {
+    const dashIndex = scenario.indexOf(' - ');
+    if (dashIndex === -1) {
+      return { scripture: scenario, case: '' };
+    }
+    return {
+      scripture: scenario.substring(0, dashIndex).trim(),
+      case: scenario.substring(dashIndex + 3).trim()
+    };
+  };
+
+  const { case: scenarioCase } = splitScenario(currentScenario);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-4">
       <Header />
@@ -176,30 +188,8 @@ const GameBoard: React.FC = () => {
           <div className="card p-4 mb-4">
             <p className="text-sm text-gray-600 mb-2">Código del Juego:</p>
             <p className="text-2xl font-mono font-bold text-dark-purple bg-light-gold rounded-lg p-2">
-              {gameId.slice(-6).toUpperCase()}
+              {gameCode?.toUpperCase()}
             </p>
-          </div>
-        )}
-        {/* Iniciar Ronda button only for admin when gameState is 'playing' */}
-        {gameState === 'playing' && isAdmin && (
-          <div className="card p-4 mb-4">
-            <button
-              onClick={startRound}
-              disabled={teams.length === 0}
-              className={`w-full text-lg py-3 px-4 rounded-lg font-semibold transition-all ${
-                teams.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'btn-primary'
-              }`}
-            >
-              {teams.length === 0 ? '❌ No hay equipos registrados' : '⚡ Iniciar Ronda'}
-            </button>
-            <div className="text-sm text-gray-600 mt-2">
-              {teams.length === 0 
-                ? 'Debe haber al menos un equipo registrado para iniciar la ronda.'
-                : 'Solo el administrador puede iniciar la ronda.'
-              }
-            </div>
           </div>
         )}
         {/* Show content when game has started (playing or round state) */}
@@ -217,20 +207,15 @@ const GameBoard: React.FC = () => {
             {/* Show round content when gameState is 'round' */}
             {gameState === 'round' && (
               <>
-                <div className="w-full flex flex-col items-center mb-6">
-                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 rounded-lg mb-4 text-center text-xl font-bold">
-                    {currentScenario}
-                  </div>
-                </div>
                 <div className="card p-6 mb-6">
                   <h2 className="text-2xl font-bold text-dark-purple mb-2">Ronda {currentRound}</h2>
-                  <div className="text-lg text-gray-700 mb-2">Escenario:</div>
-                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 rounded-lg mb-4">
-                    "{currentScenario}"
+                  <div className="text-lg text-gray-700 mb-2">Caso Misional:</div>
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg mb-4">
+                    "{scenarioCase}"
                   </div>
                   <div className="text-lg text-gray-700 mb-2">Equipo: <span className="font-bold">{team.name}</span></div>
                   <div className="text-lg text-gray-700 mb-2">Jugador: <span className="font-bold">{player.name}</span></div>
-                  <div className="text-lg text-gray-700 mb-2">Tiempo restante: <span className="font-bold">{Math.floor(localTimer/60)}:{(localTimer%60).toString().padStart(2,'0')}</span></div>
+                  <div className="text-lg text-gray-700 mb-2">Tiempo restante: <span className="font-bold">{Math.floor(roundTimer/60)}:{(roundTimer%60).toString().padStart(2,'0')}</span></div>
                 </div>
                 {/* Scripture selection and response form */}
                 <div className="card p-6 mb-6">

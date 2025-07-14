@@ -26,7 +26,10 @@ export const playerStorage = {
     if (!saved || !gameId || sessionGameId !== gameId) return false;
     const { name, teamId } = JSON.parse(saved);
     if (!name || !teamId) return false;
-    return teams.some(t => t.id === teamId);
+    
+    // If we have valid player data and gameId matches, consider player as joined
+    // Don't require team to be in backend teams array yet (it might be delayed)
+    return true;
   }
 };
 
@@ -34,13 +37,28 @@ export const playerStorage = {
 export const adminStorage = {
   get: () => {
     const saved = sessionStorage.getItem(STORAGE_KEYS.ADMIN);
-    return saved ? JSON.parse(saved) : false;
+    return saved ? JSON.parse(saved) : null;
   },
-  set: (isAdmin: boolean) => {
-    sessionStorage.setItem(STORAGE_KEYS.ADMIN, JSON.stringify(isAdmin));
+  set: (adminData: { isAdmin: boolean; gameId?: string; gameCode?: string }) => {
+    sessionStorage.setItem(STORAGE_KEYS.ADMIN, JSON.stringify(adminData));
   },
   clear: () => {
     sessionStorage.removeItem(STORAGE_KEYS.ADMIN);
+  },
+  isAdmin: (): boolean => {
+    const saved = sessionStorage.getItem(STORAGE_KEYS.ADMIN);
+    if (!saved) return false;
+    const adminData = JSON.parse(saved);
+    return adminData.isAdmin === true;
+  },
+  getGameInfo: () => {
+    const saved = sessionStorage.getItem(STORAGE_KEYS.ADMIN);
+    if (!saved) return null;
+    const adminData = JSON.parse(saved);
+    return {
+      gameId: adminData.gameId,
+      gameCode: adminData.gameCode
+    };
   }
 };
 

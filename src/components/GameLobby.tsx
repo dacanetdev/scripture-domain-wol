@@ -4,10 +4,12 @@ import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage } from '../utils/storage';
 import Header from './Header';
 
+const DEBUG_MODE = process.env.REACT_APP_DEBUG_MODE === 'true';
+
 const TEAM_EMOJIS = ['☀️', '📖', '🙏', '🌟', '❤️', '✨', '⚡', '🦁', '🐉', '🦅'];
 
 const GameLobby: React.FC = () => {
-  const { teams, gameId, isAdmin, gameState, joinTeam, connectToGame, isConnected, setAdmin } = useGame();
+  const { teams, gameId, gameCode, isAdmin, gameState, joinTeam, connectToGame, isConnected, setAdmin, isInitializing } = useGame();
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -15,6 +17,7 @@ const GameLobby: React.FC = () => {
   const [viewGameValid, setViewGameValid] = useState(false);
   const [newTeamEmoji, setNewTeamEmoji] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [pendingJoin, setPendingJoin] = useState<{ name: string; teamId: string; gameId: string } | null>(null);
   const navigate = useNavigate();
 
   // On mount, check if player is already joined and redirect if needed
@@ -35,13 +38,27 @@ const GameLobby: React.FC = () => {
   // Always redirect to the correct screen based on gameState
   useEffect(() => {
     // Only redirect if player is already joined and not just after joining
-    if (playerStorage.isJoined(teams, gameId)) {
+    const isPlayerJoined = playerStorage.isJoined(teams, gameId);
+    console.log('Navigation useEffect:', { 
+      isPlayerJoined, 
+      gameState, 
+      gameId, 
+      teams: teams.length,
+      playerData: playerStorage.get(),
+      sessionGameId: gameSessionStorage.get()
+    });
+    
+    if (isPlayerJoined) {
       if (gameState === 'playing' || gameState === 'round') {
+        console.log('Redirecting to /game (playing/round)');
         navigate('/game');
       } else if (gameState === 'results') {
+        console.log('Redirecting to /results');
         navigate('/results');
       } else if (gameState === 'lobby') {
-        navigate('/lobby');
+        // If player has joined a team, go to game screen even in lobby state
+        console.log('Redirecting to /game (lobby state)');
+        navigate('/game');
       }
     }
   }, [gameState, navigate, teams, gameId]);
@@ -74,20 +91,20 @@ const GameLobby: React.FC = () => {
   useEffect(() => {
     const trimmedCode = joinCode.trim();
     const isValidLength = trimmedCode.length >= 3;
-    const isGameConnected = isConnected && gameId === trimmedCode;
+    const isGameConnected = isConnected && !!gameId; // Check if we have a gameId (meaning we found and connected to a game)
     
     // Update connecting state
     if (isGameConnected) {
       setIsConnecting(false);
     }
     
-    // Update viewGameValid
-    setViewGameValid(isValidLength && gameId === trimmedCode);
-  }, [isConnected, gameId, joinCode]);
+    // Update viewGameValid - check if we have a gameId and the gameCode matches
+    setViewGameValid(isValidLength && !!gameId && gameCode === trimmedCode);
+  }, [isConnected, gameId, gameCode, joinCode]);
 
   // Helper function to validate game code for 'Ver Juego' - checks if game exists on backend
   const validateGameCodeForView = (code: string): boolean => {
-    return code.trim().length >= 3 && gameId === code.trim();
+    return code.trim().length >= 3 && !!gameId && gameCode === code.trim();
   };
 
   // Real-time validation of game code
@@ -95,40 +112,49 @@ const GameLobby: React.FC = () => {
 
   const handleJoinTeam = () => {
     if (!playerName.trim() || !selectedTeam) return;
-    
-    // Always require game code to join
     if (!joinCode.trim()) {
       setJoinError('Por favor ingresa el código del juego.');
       return;
     }
+    if (!gameId) {
+      setJoinError('No se pudo conectar al juego. Verifica el código.');
+      return;
+    }
+    console.log('handleJoinTeam START:', { selectedTeam, playerName, newTeamEmoji, joinCode, gameId });
     
-    // Use the game code as the gameId for backend
-    const gameId = joinCode.trim();
-    
-    // Join the game using the backend API
     joinTeam(selectedTeam, playerName.trim(), newTeamEmoji);
     
-    // Store player data locally for persistence
-    playerStorage.set({
+    const playerData = {
       name: playerName.trim(),
       teamId: selectedTeam,
-      gameId: gameId
-    });
+      gameId: gameId // Use the full gameId from context, not the partial code
+    };
+    console.log('Saving player data:', playerData);
+    playerStorage.set(playerData);
     
-    // Clear form and redirect
+    // Set game session to ensure isJoined check works properly
+    console.log('Setting game session:', gameId);
+    gameSessionStorage.set(gameId);
+    
+    console.log('handleJoinTeam END - clearing form state');
     setPlayerName('');
     setSelectedTeam(null);
     setJoinCode('');
     setJoinError('');
-    navigate('/game');
+    setNewTeamEmoji('');
+    // Remove immediate navigation - let useEffect handle it based on game state
   };
+
+  const realTeams = teams.filter(team => team.id !== 'viewer' && team.id !== 'admin');
+
+  // Only enable join if connected to the correct game
+  const canJoin = playerName.trim() && joinCode.trim() && selectedTeam && isConnected && gameCode === joinCode.trim();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-4">
       <Header />
       <div className="max-w-md mx-auto">
-        {/* Game Code Display - Only show when actively connected to a game */}
-        {gameId && isConnected && (
+        {DEBUG_MODE && gameId && isConnected && (
           <div className="card p-4 mb-4">
             <p className="text-sm text-gray-600 mb-2">Juego Conectado:</p>
             <p className="text-2xl font-mono font-bold text-dark-purple bg-light-gold rounded-lg p-2">
@@ -137,7 +163,6 @@ const GameLobby: React.FC = () => {
             <p className="text-xs text-green-600 mt-1">✅ Conectado y listo para jugar</p>
             <button
               onClick={() => {
-                // Clear the game connection by refreshing the page
                 window.location.reload();
               }}
               className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
@@ -179,15 +204,32 @@ const GameLobby: React.FC = () => {
             {!isConnecting && joinCode.trim().length >= 3 && !isConnected && (
               <div className="text-red-600 text-sm mb-2">❌ Error de conexión. Verifica el código del juego.</div>
             )}
-            {!isConnecting && joinCode.trim().length >= 3 && isConnected && gameId === joinCode.trim() && (
+            {!isConnecting && joinCode.trim().length >= 3 && isConnected && gameCode === joinCode.trim() && (
               <div className="text-green-600 text-sm mb-2">✅ Conectado al juego</div>
             )}
             {joinError && <div className="text-red-600 mb-2">{joinError}</div>}
             {/* Ver Juego button for projection */}
             {viewGameValid && (
               <button
-                onClick={() => {
+                onClick={async () => {
+                  // Connect to game
                   connectToGame(joinCode.trim());
+                  
+                  // Wait for state synchronization to complete
+                  let attempts = 0;
+                  const maxAttempts = 50; // 5 seconds max wait
+                  
+                  while (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                    
+                    // Check if we're still initializing
+                    if (!isInitializing) {
+                      break;
+                    }
+                  }
+                  
+                  // Navigate to dashboard
                   navigate('/dashboard');
                 }}
                 className="btn-secondary w-full text-xl py-3 mb-2 bg-yellow-400 text-dark-purple font-bold rounded-lg shadow hover:bg-yellow-500"
@@ -221,14 +263,14 @@ const GameLobby: React.FC = () => {
               </label>
               
               {/* Show existing teams dropdown if any exist */}
-              {teams.length > 0 && (
+              {realTeams.length > 0 && (
                 <select
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-2"
                   value={selectedTeam || ''}
                   onChange={e => setSelectedTeam(e.target.value)}
                 >
                   <option value="">-- Elige un equipo existente --</option>
-                  {teams.map(team => (
+                  {realTeams.map(team => (
                     <option key={team.id} value={team.id}>
                       {team.emoji} {team.name} ({team.players.length} jugadores)
                     </option>
@@ -237,11 +279,11 @@ const GameLobby: React.FC = () => {
               )}
               
               {/* Always show input for creating new team if under 6 teams */}
-              {teams.length < 6 && (
+              {realTeams.length < 6 && (
                 <div className="mb-2">
                   <input
                     type="text"
-                    value={selectedTeam && !teams.find(t => t.id === selectedTeam) ? selectedTeam : ''}
+                    value={selectedTeam && !realTeams.find(t => t.id === selectedTeam) ? selectedTeam : ''}
                     onChange={e => setSelectedTeam(e.target.value)}
                     placeholder="O escribe el nombre de un equipo nuevo"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg"
@@ -251,12 +293,12 @@ const GameLobby: React.FC = () => {
               )}
               
               {/* Show error if max teams reached */}
-              {teams.length >= 6 && !selectedTeam && (
+              {realTeams.length >= 6 && !selectedTeam && (
                 <div className="text-red-600 text-sm mb-2">Máximo 6 equipos. Selecciona uno existente.</div>
               )}
               
               {/* Show emoji selection for new teams */}
-              {teams.length < 6 && selectedTeam && !teams.find(t => t.id === selectedTeam) && (
+              {realTeams.length < 6 && selectedTeam && !realTeams.find(t => t.id === selectedTeam) && (
                 <div className="mb-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Elige un emoji para tu equipo</label>
                   
@@ -265,7 +307,7 @@ const GameLobby: React.FC = () => {
                     <div className="text-xs text-gray-600 mb-1">Emojis disponibles:</div>
                     <div className="flex flex-wrap gap-2">
                       {TEAM_EMOJIS
-                        .filter(emoji => !teams.some(team => team.emoji === emoji)) // Filter out emojis already taken
+                        .filter(emoji => !realTeams.some(team => team.emoji === emoji)) // Filter out emojis already taken
                         .map(emoji => (
                           <button
                             key={emoji}
@@ -280,11 +322,11 @@ const GameLobby: React.FC = () => {
                   </div>
                   
                   {/* Show taken emojis for reference */}
-                  {teams.length > 0 && (
+                  {realTeams.length > 0 && (
                     <div className="mb-2">
                       <div className="text-xs text-gray-600 mb-1">Emojis tomados:</div>
                       <div className="flex flex-wrap gap-2">
-                        {teams.map(team => (
+                        {realTeams.map(team => (
                           <span key={team.id} className="text-2xl px-3 py-1 rounded-lg border-2 border-gray-300 bg-gray-100 text-gray-400">
                             {team.emoji}
                           </span>
@@ -294,7 +336,7 @@ const GameLobby: React.FC = () => {
                   )}
                   
                   {/* Show message if no emojis available */}
-                  {TEAM_EMOJIS.every(emoji => teams.some(team => team.emoji === emoji)) && (
+                  {TEAM_EMOJIS.every(emoji => realTeams.some(team => team.emoji === emoji)) && (
                     <div className="text-red-600 text-sm mt-2">
                       No hay emojis disponibles. Todos los emojis han sido tomados.
                     </div>
@@ -302,6 +344,10 @@ const GameLobby: React.FC = () => {
                 </div>
               )}
             </div>
+          )}
+          {/* Show message if there are no real teams yet */}
+          {realTeams.length === 0 && (
+            <div className="text-gray-500 text-sm mt-2">No hay equipos aún. ¡Crea el primero!</div>
           )}
 
                     {/* Debug info */}
@@ -312,9 +358,13 @@ const GameLobby: React.FC = () => {
           {/* Join Button - Show if player has name, code, and team selected */}
           {playerName.trim() && joinCode.trim() && selectedTeam && (
             <button
-              onClick={handleJoinTeam}
+              onClick={() => {
+                handleJoinTeam();
+                setNewTeamEmoji('');
+                setSelectedTeam(null);
+              }}
               className="btn-primary w-full"
-              disabled={!teams.find(t => t.id === selectedTeam) && !newTeamEmoji} // Disable if new team without emoji
+              disabled={!canJoin}
             >
               ⚔️ Unirse a la Batalla
             </button>

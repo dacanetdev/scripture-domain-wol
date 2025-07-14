@@ -95,6 +95,10 @@ export const api = {
       getSocket().emit('joinGame', data);
     },
     
+    requestGameState: (gameId: string) => {
+      getSocket().emit('requestGameState', { gameId });
+    },
+    
     startGame: (gameId: string) => {
       getSocket().emit('startGame', { gameId });
     },
@@ -123,15 +127,13 @@ export const api = {
       getSocket().emit('updatePlayerSelection', data);
     },
     
-    updateTimer: (data: { gameId: string; timer: number }) => {
-      getSocket().emit('updateTimer', data);
-    },
-    
     onGameState: (callback: (gameState: any) => void) => {
+      console.log('API: Registering gameState listener');
       getSocket().on('gameState', callback);
     },
     
     onPlayerJoined: (callback: (data: { playerName: string; teamId: string; emoji: string }) => void) => {
+      console.log('API: Registering playerJoined listener');
       getSocket().on('playerJoined', callback);
     },
     

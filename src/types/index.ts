@@ -46,6 +46,7 @@ export type GameState = 'lobby' | 'playing' | 'round' | 'results';
 
 export interface GameContextType {
   gameId: string | null;
+  gameCode: string | null; // Add game code for easy lookup
   gameState: GameState;
   currentRound: number;
   teams: Team[];
@@ -65,9 +66,12 @@ export interface GameContextType {
   // Backend connection state
   isConnected: boolean;
   currentPlayer: { name: string; teamId: string } | null;
+  // Loading state for initial sync
+  isInitializing: boolean;
   startGame: (numTeams?: number) => void;
   startRound: () => void;
   connectToGame: (gameId: string) => void;
+  connectToGameAsAdmin: (gameId: string) => void;
   joinTeam: (teamId: string, playerName: string, emoji?: string) => void;
   selectScripture: (scriptureId: number) => void;
   updateResponse: (response: string) => void;
