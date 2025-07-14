@@ -19,7 +19,8 @@ const GameBoard: React.FC = () => {
     isAdmin,
     startRound,
     setPlayerSelection,
-    playerSelections
+    playerSelections,
+    currentPlayer
   } = useGame();
   const navigate = useNavigate();
   const [player, setPlayer] = useState<{ name: string; teamId: string } | null>(null);
@@ -54,26 +55,14 @@ const GameBoard: React.FC = () => {
     }
   }, [gameState, localTimer]); // Include localTimer in dependencies
 
-  // On mount, check for player info and joining state
+  // Check if player is connected and has joined a game
   useEffect(() => {
-    const playerInfo = playerStorage.get();
-    if (!playerInfo) {
+    if (!currentPlayer) {
       navigate('/lobby');
       return;
     }
-    if (!playerStorage.isJoined(teams, gameId)) {
-      // Wait for up to 2 seconds for teams to update
-      const timeout = setTimeout(() => {
-        // If still not joined after 2s, redirect
-        if (!playerStorage.isJoined(teams, gameId)) {
-          navigate('/lobby');
-        }
-      }, 2000);
-      return () => clearTimeout(timeout);
-    } else {
-      setPlayer(playerInfo);
-    }
-  }, [navigate, teams, gameId]);
+    setPlayer(currentPlayer);
+  }, [currentPlayer, navigate]);
 
   // Debug: log teams and join status
   useEffect(() => {
