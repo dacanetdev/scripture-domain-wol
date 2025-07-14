@@ -101,11 +101,6 @@ const GameLobby: React.FC = () => {
     setViewGameValid(isValidLength && !!gameId && gameCode === trimmedCode);
   }, [isConnected, gameId, gameCode, joinCode]);
 
-  // Helper function to validate game code for 'Ver Juego' - checks if game exists on backend
-  const validateGameCodeForView = (code: string): boolean => {
-    return code.trim().length >= 3 && !!gameId && gameCode === code.trim();
-  };
-
   // Real-time validation of game code
   // Game code change handler is now inline in the input onChange
 
