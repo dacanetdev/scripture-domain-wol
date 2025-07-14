@@ -60,7 +60,7 @@ const GameLobby: React.FC = () => {
         navigate('/game');
       }
     }
-  }, [gameState, navigate, teams, gameId]);
+  }, [gameState, navigate, teams, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debug logging
   useEffect(() => {
@@ -84,7 +84,7 @@ const GameLobby: React.FC = () => {
     } else {
       setIsConnecting(false);
     }
-  }, [joinCode, connectToGame]); // Removed connectToGame from dependencies
+  }, [joinCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update connecting state and viewGameValid based on connection status
   useEffect(() => {
@@ -99,7 +99,7 @@ const GameLobby: React.FC = () => {
     
     // Update viewGameValid - check if we have a gameId and the gameCode matches
     setViewGameValid(isValidLength && !!gameId && gameCode === trimmedCode);
-  }, [isConnected, gameId, gameCode, joinCode]);
+  }, [isConnected, gameId, gameCode, joinCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Real-time validation of game code
   // Game code change handler is now inline in the input onChange
