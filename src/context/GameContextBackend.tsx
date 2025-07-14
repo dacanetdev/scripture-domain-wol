@@ -129,6 +129,25 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_CONNECTION', payload: true });
     }
 
+    // Handle page visibility changes (tab switching, minimizing)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('Page hidden, keeping connection alive');
+      } else {
+        console.log('Page visible, checking connection');
+        if (!isSocketConnected()) {
+          console.log('Reconnecting after page visibility change');
+          socket.connect();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+
     // Game state updates from server
     api.socket.onGameState((gameState) => {
       console.log('Received game state update:', gameState);
@@ -143,7 +162,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     return () => {
       api.socket.off('gameState');
       api.socket.off('playerJoined');
-      socket.disconnect();
+      // Don't disconnect on cleanup, let the socket stay connected
     };
   }, []);
 

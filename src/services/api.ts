@@ -23,8 +23,9 @@ export const getSocket = (): Socket => {
       timeout: 5000,
       forceNew: false,
       reconnection: true,
-      reconnectionAttempts: 3,
-      reconnectionDelay: 500,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
     
     socket.on('connect', () => {
@@ -37,6 +38,11 @@ export const getSocket = (): Socket => {
     
     socket.on('disconnect', (reason) => {
       console.log('Disconnected from server:', reason);
+      // Attempt to reconnect automatically
+      if (reason === 'io server disconnect') {
+        // Server disconnected us, try to reconnect
+        socket!.connect();
+      }
     });
     
     socket.on('connect_timeout', () => {
