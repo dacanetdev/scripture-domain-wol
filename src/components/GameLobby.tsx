@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { playerStorage, adminStorage, gameSessionStorage } from '../utils/storage';
+import { playerStorage, gameSessionStorage } from '../utils/storage';
 import Header from './Header';
 
 const TEAM_EMOJIS = ['☀️', '📖', '🙏', '🌟', '❤️', '✨', '⚡', '🦁', '🐉', '🦅'];
 
 const GameLobby: React.FC = () => {
-  const { teams, gameId, isAdmin, gameState, startGame, joinTeam, setAdmin } = useGame();
+  const { teams, gameId, isAdmin, gameState, joinTeam } = useGame();
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -75,24 +75,7 @@ const GameLobby: React.FC = () => {
   };
 
   // Real-time validation of game code
-  const handleGameCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const code = e.target.value;
-    setJoinCode(code);
-    
-    // Clear error when user starts typing
-    if (joinError) {
-      setJoinError('');
-    }
-    
-    // Only validate if code is 6 characters long
-    if (code.length === 6) {
-      const validation = validateGameCode(code);
-      if (!validation.isValid) {
-        setJoinError('Código de juego no válido. Verifica el código.');
-      }
-    }
-    setViewGameValid(code.length === 6 && validateGameCodeForView(code));
-  };
+  // Game code change handler is now inline in the input onChange
 
   const handleJoinTeam = () => {
     if (!playerName.trim() || !selectedTeam) return;
