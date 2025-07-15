@@ -7,10 +7,12 @@ import AdminPanel from './components/AdminPanel';
 import ResultsScreen from './components/ResultsScreen';
 import Dashboard from './components/Dashboard';
 import DashboardAccess from './components/DashboardAccess';
+import ConnectionStatusIndicator from './components/ConnectionStatus';
 
 const AppContent: React.FC = () => {
   return (
     <div className="App">
+      <ConnectionStatusIndicator />
       <Routes>
         <Route path="/" element={<GameLobby />} />
         <Route path="/lobby" element={<GameLobby />} />
