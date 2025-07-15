@@ -9,10 +9,18 @@ import Dashboard from './components/Dashboard';
 import DashboardAccess from './components/DashboardAccess';
 import ConnectionStatusIndicator from './components/ConnectionStatus';
 
+// Utility to check for debug flag in URL
+const isDebugMode = () => {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  const debug = params.get('debug');
+  return debug === '1' || debug === 'connection';
+};
+
 const AppContent: React.FC = () => {
   return (
     <div className="App">
-      <ConnectionStatusIndicator />
+      {isDebugMode() && <ConnectionStatusIndicator />}
       <Routes>
         <Route path="/" element={<GameLobby />} />
         <Route path="/lobby" element={<GameLobby />} />
