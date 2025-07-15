@@ -123,7 +123,7 @@ const ConnectionStatusIndicator: React.FC = () => {
       
       <div className="mt-2 text-xs text-gray-500">
         <p>📱 {navigator.userAgent.includes('Mobile') ? 'Dispositivo móvil detectado' : 'Dispositivo de escritorio'}</p>
-        <p>🌐 {window.location.protocol}//{window.location.host}</p>
+        <p>🌐 {`${window.location.protocol}//${window.location.host}`}</p>
       </div>
     </div>
   );
