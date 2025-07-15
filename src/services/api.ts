@@ -1,12 +1,33 @@
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Better URL detection for mobile
+const getApiUrl = () => {
+  // Check if we're in production (Railway)
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Check if we're on mobile and need to use the same host
+  if (window.location.hostname !== 'localhost') {
+    // Use the same host as the current page
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  
+  // Default localhost for development
+  return 'http://localhost:5000';
+};
+
+const API_BASE_URL = getApiUrl();
+
+console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('📱 User Agent:', navigator.userAgent);
+console.log('🔗 Current Location:', window.location.href);
 
 // HTTP API client
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000, // Increased timeout for mobile networks
+  timeout: 20000, // Even longer timeout for mobile
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,29 +60,39 @@ let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
+    console.log('🔌 Creating new socket connection to:', API_BASE_URL);
+    
     // Enhanced configuration for mobile compatibility
     socket = io(API_BASE_URL, {
-      transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
+      transports: ['polling', 'websocket'], // Try polling first on mobile
       autoConnect: true,
-      timeout: 15000, // Increased timeout for mobile networks
+      timeout: 20000, // Even longer timeout for mobile networks
       forceNew: false,
       reconnection: true,
-      reconnectionAttempts: 15, // More attempts for mobile
-      reconnectionDelay: 2000, // Longer initial delay
-      reconnectionDelayMax: 15000, // Longer max delay
+      reconnectionAttempts: 20, // More attempts for mobile
+      reconnectionDelay: 3000, // Longer initial delay
+      reconnectionDelayMax: 20000, // Longer max delay
       upgrade: true, // Allow transport upgrade
       rememberUpgrade: true, // Remember successful transport
       // Better error handling
       rejectUnauthorized: false, // Handle SSL issues
+      // Mobile-specific settings
+      withCredentials: false, // Disable credentials for mobile
     });
     
     socket.on('connect', () => {
       console.log('✅ Connected to server:', socket!.id);
+      console.log('🌐 Transport:', socket!.io.engine.transport.name);
       updateConnectionStatus('connected');
     });
     
     socket.on('connect_error', (error) => {
       console.error('❌ Connection error:', error);
+      console.error('🔍 Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
       updateConnectionStatus('error');
       
       // Log specific error types for debugging
@@ -69,6 +100,10 @@ export const getSocket = (): Socket => {
         console.warn('🕐 Connection timeout - common on mobile networks');
       } else if (error.message.includes('websocket')) {
         console.warn('🌐 WebSocket failed - falling back to polling');
+      } else if (error.message.includes('CORS')) {
+        console.warn('🚫 CORS error - check server configuration');
+      } else if (error.message.includes('SSL')) {
+        console.warn('🔒 SSL/TLS error - check certificate');
       }
     });
     
@@ -125,8 +160,6 @@ export const getSocket = (): Socket => {
     socket.on('upgradeError', (error) => {
       console.warn('⚠️ Transport upgrade failed:', error);
     });
-    
-
   }
   return socket;
 };
@@ -155,6 +188,19 @@ export const forceReconnect = () => {
     updateConnectionStatus('reconnecting');
     socket.disconnect();
     socket.connect();
+  }
+};
+
+// Test connection function
+export const testConnection = async () => {
+  try {
+    console.log('🧪 Testing connection to:', API_BASE_URL);
+    const response = await apiClient.get('/api/health');
+    console.log('✅ HTTP connection test successful:', response.data);
+    return true;
+  } catch (error) {
+    console.error('❌ HTTP connection test failed:', error);
+    return false;
   }
 };
 

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { onConnectionStatusChange, getConnectionStatus, forceReconnect, ConnectionStatus } from '../services/api';
+import { onConnectionStatusChange, getConnectionStatus, forceReconnect, testConnection, ConnectionStatus } from '../services/api';
 
 const ConnectionStatusIndicator: React.FC = () => {
   const [status, setStatus] = useState<ConnectionStatus>(getConnectionStatus());
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string>('');
 
   useEffect(() => {
     const unsubscribe = onConnectionStatusChange((newStatus) => {
@@ -11,6 +13,20 @@ const ConnectionStatusIndicator: React.FC = () => {
 
     return unsubscribe;
   }, []);
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setTestResult('');
+    
+    try {
+      const success = await testConnection();
+      setTestResult(success ? '✅ HTTP connection successful' : '❌ HTTP connection failed');
+    } catch (error) {
+      setTestResult('❌ Test failed');
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   const getStatusConfig = (status: ConnectionStatus) => {
     switch (status) {
@@ -62,7 +78,7 @@ const ConnectionStatusIndicator: React.FC = () => {
   const config = getStatusConfig(status);
 
   return (
-    <div className={`fixed top-4 right-4 z-50 px-3 py-2 rounded-lg border ${config.bgColor} ${config.borderColor} shadow-lg transition-all duration-300`}>
+    <div className={`fixed top-4 right-4 z-50 px-3 py-2 rounded-lg border ${config.bgColor} ${config.borderColor} shadow-lg transition-all duration-300 max-w-sm`}>
       <div className="flex items-center space-x-2">
         <span className={`text-sm font-medium ${config.color}`}>
           {config.text}
@@ -77,17 +93,41 @@ const ConnectionStatusIndicator: React.FC = () => {
         )}
       </div>
       
+      {/* Test connection button */}
+      <div className="mt-2">
+        <button
+          onClick={handleTestConnection}
+          disabled={isTesting}
+          className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+        >
+          {isTesting ? '🧪 Probando...' : '🧪 Probar Conexión'}
+        </button>
+        {testResult && (
+          <div className="mt-1 text-xs text-gray-600">
+            {testResult}
+          </div>
+        )}
+      </div>
+      
       {/* Mobile-specific tips */}
       {status === 'error' && (
-        <div className="mt-2 text-xs text-gray-600 max-w-xs">
+        <div className="mt-2 text-xs text-gray-600">
           <p>💡 Consejos para móviles:</p>
           <ul className="list-disc list-inside mt-1 space-y-1">
             <li>Verifica tu conexión a internet</li>
             <li>Intenta cambiar entre WiFi y datos móviles</li>
             <li>Recarga la página si el problema persiste</li>
+            <li>Verifica que no estés en modo avión</li>
+            <li>Prueba en Chrome o Firefox</li>
           </ul>
         </div>
       )}
+      
+      {/* Debug info for mobile */}
+      <div className="mt-2 text-xs text-gray-500">
+        <p>📱 {navigator.userAgent.includes('Mobile') ? 'Dispositivo móvil detectado' : 'Dispositivo de escritorio'}</p>
+        <p>🌐 {window.location.protocol}//{window.location.host}</p>
+      </div>
     </div>
   );
 };
