@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContextBackend';
+import { formatTime } from '../utils/formatTime';
 
 const RoundTimer: React.FC = () => {
   const { roundTimer, lastTimerUpdate, gameState } = useGame();
@@ -29,12 +30,6 @@ const RoundTimer: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [gameState, localTimer]);
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const getTimerColor = (): string => {
     if (localTimer > 120) return 'text-green-400';

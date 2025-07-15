@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { scenarios, scriptures } from '../data/scriptures';
+import { scenarios as scenarioList, scriptures } from '../data/scriptures';
 import { GameContextType, GameState, Team, Response, RoundResult, GameResults, TeamRoundScore } from '../types';
 import { api, getSocket, isSocketConnected } from '../services/api';
 import { adminStorage } from '../utils/storage';
@@ -14,7 +14,7 @@ interface GameStateType {
   teams: Team[];
   responses: Response[];
   scores: { [key: string]: number };
-  currentScenario: string;
+  currentScenario: any; // Change to object type for scenario
   roundTimer: number;
   lastTimerUpdate: number;
   isAdmin: boolean;
@@ -30,6 +30,7 @@ interface GameStateType {
   currentPlayer: { name: string; teamId: string } | null;
   // Loading state for initial sync
   isInitializing: boolean;
+  scenarios: any[]; // Change to array of objects
 }
 
 const initialState: GameStateType = {
@@ -40,7 +41,7 @@ const initialState: GameStateType = {
   teams: [],
   responses: [],
   scores: {},
-  currentScenario: '',
+  currentScenario: null, // Now an object
   roundTimer: 180,
   lastTimerUpdate: Date.now(),
   isAdmin: false,
@@ -52,7 +53,8 @@ const initialState: GameStateType = {
   playerSelections: {},
   isConnected: false,
   currentPlayer: null,
-  isInitializing: true
+  isInitializing: true,
+  scenarios: scenarioList // Now an array of objects
 };
 
 type GameAction =
@@ -94,7 +96,8 @@ const gameReducer = (state: GameStateType, action: GameAction): GameStateType =>
         playerSelections: backendState.playerSelections || state.playerSelections,
         lastUpdate: Date.now(),
         // Mark as initialized when we receive the first game state
-        isInitializing: false
+        isInitializing: false,
+        scenarios: backendState.scenarios || state.scenarios // Update scenarios
       };
       console.log('State updated in reducer:', {
         oldState: state.gameState,
@@ -511,12 +514,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     if (!playerSelection?.selectedScripture || !playerSelection.teamResponse.trim()) return;
     
     if (state.gameId) {
+      const playerName = state.currentPlayer?.name || '';
       api.socket.submitResponse({
         gameId: state.gameId,
         teamId,
         playerId,
         scriptureId: playerSelection.selectedScripture,
-        response: playerSelection.teamResponse
+        response: playerSelection.teamResponse,
+        playerName
       });
     }
   };
@@ -577,7 +582,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     nextRound,
     setAdmin,
     scriptures,
-    scenarios
+    scenarios: state.scenarios
   };
 
   return (

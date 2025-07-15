@@ -9,19 +9,76 @@ require('dotenv').config();
 
 // Game scenarios based on scripture cases
 const scenarios = [
-  "📘 José Smith—Historia 1:15–20 - Estás enseñando a alguien que duda de que Dios y Jesucristo sean reales o distintos. Le compartes la experiencia de la Primera Visión, testificando que Dios sigue hablando hoy y que tiene un plan para nosotros.",
-  "📘 DyC 1:30 - Una amiga te pregunta por qué insistes en tu religión si 'todas enseñan a ser buenas personas'. Le explicas que el Señor mismo restauró Su Iglesia y autoridad por medio de un profeta.",
-  "📘 DyC 1:37–38 - Un joven investigando la Iglesia se pregunta por qué los miembros siguen tanto al presidente de la Iglesia. Le enseñas que cuando los profetas hablan, es como si Dios mismo hablara.",
-  "📘 DyC 6:36 - Un joven con ansiedad por el futuro te pregunta cómo mantenerse positivo. Le compartes cómo mirar a Cristo ha traído paz a tu vida, y que la fe en Él reemplaza el miedo.",
-  "📘 DyC 8:2–3 - Estás enseñando sobre la oración, y una persona dice que no ha 'sentido nada' al orar. Le compartes esta escritura para explicarle que la revelación puede venir como claridad mental.",
-  "📘 DyC 13:1 - Un joven te pregunta por qué necesita bautizarse de nuevo si ya fue bautizado en otra iglesia. Le enseñas que el sacerdocio con la autoridad de Dios fue restaurado.",
-  "📘 DyC 18:10–11 - Una joven investigadora se siente inútil por errores pasados. Le compartes esta escritura para enseñarle que para Dios su alma tiene valor eterno.",
-  "📘 DyC 18:15–16 - Un amigo miembro no quiere ir a la misión. Le compartes esta escritura y tu testimonio de cómo ayudar a otros a conocer el evangelio trae gozo real.",
-  "📘 DyC 19:16–19 - Estás hablando con alguien que cree que Dios no entiende su sufrimiento. Le enseñas sobre la Expiación de Cristo, y cómo Él ya sufrió todo lo que sentimos.",
-  "📘 DyC 21:4–6 - Una joven dice que los profetas 'sólo dan su opinión'. Le enseñas este versículo para mostrar que los profetas verdaderos hablan en nombre de Dios.",
-  "📘 DyC 29:10–11 - Un amigo teme que el mundo va de mal en peor. Le compartes esta escritura para mostrarle que Cristo vendrá de nuevo y traerá paz y justicia.",
-  "📘 DyC 49:15–17 - Un joven dice que ya no cree en el matrimonio por todo lo que ha visto. Le enseñas que el matrimonio es un mandamiento divino y parte del plan eterno de Dios."
+  {
+    scripture: "José Smith—Historia 1:15–20",
+    key: "José Smith vio “a dos Personajes, cuyo fulgor y gloria no admiten descripción”.",
+    apply: "Estás enseñando a alguien que duda de que Dios y Jesucristo sean reales o distintos. Le compartes la experiencia de la Primera Visión, testificando que Dios sigue hablando hoy y que tiene un plan para nosotros. Explicas que José buscó con fe, y recibió respuesta. Invitas a tu amigo a orar con fe también."
+  },
+  {
+    scripture: "DyC 1:30",
+    key: "La Iglesia de Jesucristo es “la única iglesia verdadera y viviente”.",
+    apply: "Una amiga te pregunta por qué insistes en tu religión si 'todas enseñan a ser buenas personas'. Le explicas que el Señor mismo restauró Su Iglesia y autoridad por medio de un profeta, y que eso hace la diferencia eterna: convenios, profetas y revelación continua."
+  },
+  {
+    scripture: "DyC 1:37–38",
+    key: "“Sea por mi propia voz o por la voz de mis siervos, es lo mismo”.",
+    apply: "Un joven investigando la Iglesia se pregunta por qué los miembros siguen tanto al presidente de la Iglesia. Le enseñas que cuando los profetas hablan, es como si Dios mismo hablara. Le compartes un discurso reciente que te ayudó personalmente y lo invitas a orar para saber si el profeta es guiado por Dios."
+  },
+  {
+    scripture: "DyC 6:36",
+    key: "“Mirad hacia mí en todo pensamiento; no dudéis; no temáis”.",
+    apply: "Un joven con ansiedad por el futuro te pregunta cómo mantenerse positivo. Le compartes cómo mirar a Cristo ha traído paz a tu vida, y que la fe en Él reemplaza el miedo. Le invitas a orar y leer sobre Cristo en el Libro de Mormón."
+  },
+  {
+    scripture: "DyC 8:2–3",
+    key: "“Hablaré a tu mente y a tu corazón por medio del Espíritu Santo”.",
+    apply: "Estás enseñando sobre la oración, y una persona dice que no ha 'sentido nada' al orar. Le compartes esta escritura para explicarle que la revelación puede venir como claridad mental o paz interior. Le invitas a seguir intentándolo con fe."
+  },
+  {
+    scripture: "DyC 13:1",
+    key: "El Sacerdocio Aarónico “tiene las llaves del ministerio de ángeles…”",
+    apply: "Un joven te pregunta por qué necesita bautizarse de nuevo si ya fue bautizado en otra iglesia. Le enseñas que el sacerdocio con la autoridad de Dios fue restaurado por medio de Juan el Bautista y que el bautismo válido requiere esa autoridad."
+  },
+  {
+    scripture: "DyC 18:10–11",
+    key: "“El valor de las almas es grande a la vista de Dios”.",
+    apply: "Una joven investigadora se siente inútil por errores pasados. Le compartes esta escritura para enseñarle que para Dios su alma tiene valor eterno, y que Cristo ya pagó el precio por ella. Le invitas a acercarse a Él mediante el arrepentimiento."
+  },
+  {
+    scripture: "DyC 18:15–16",
+    key: "“¡Cuán grande no será vuestro gozo si me trajereis muchas almas!”",
+    apply: "Un amigo miembro no quiere ir a la misión. Le compartes esta escritura y tu testimonio de cómo ayudar a otros a conocer el evangelio trae gozo real. Le animas a orar y a considerar cómo podría ser instrumento en manos del Señor."
+  },
+  {
+    scripture: "DyC 19:16–19",
+    key: "“Yo, [Jesucristo], he padecido estas cosas por todos”.",
+    apply: "Estás hablando con alguien que cree que Dios no entiende su sufrimiento. Le enseñas sobre la Expiación de Cristo, y cómo Él ya sufrió todo lo que sentimos. Le testificas que puede encontrar consuelo y sanación en Cristo."
+  },
+  {
+    scripture: "DyC 21:4–6",
+    key: "“Recibiréis [la] palabra [del profeta] como si viniera de mi propia boca”.",
+    apply: "Una joven dice que los profetas “sólo dan su opinión”. Le enseñas este versículo para mostrar que los profetas verdaderos hablan en nombre de Dios. Le compartes cómo un consejo profético reciente te ayudó en una decisión personal."
+  },
+  {
+    scripture: "DyC 29:10–11",
+    key: "“Con poder y gran gloria me revelaré desde los cielos…”",
+    apply: "Un amigo teme que el mundo va de mal en peor. Le compartes esta escritura para mostrarle que Cristo vendrá de nuevo y traerá paz y justicia. Le invitas a prepararse por medio del arrepentimiento y los convenios."
+  },
+  {
+    scripture: "DyC 49:15–17",
+    key: "“… el matrimonio lo decretó Dios”.",
+    apply: "Un joven dice que ya no cree en el matrimonio por todo lo que ha visto. Le enseñas que el matrimonio es un mandamiento divino y parte del plan eterno de Dios, y que cuando se vive conforme al evangelio, puede traer felicidad duradera."
+  }
 ];
+
+function shuffle(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -59,14 +116,15 @@ const createGame = (gameId) => {
     responses: [],
     scores: {},
     currentScenario: '',
-    roundTimer: 150,
+    roundTimer: 180,
     lastTimerUpdate: Date.now(),
     roundResults: [],
     teamRoundScores: [],
     gameResults: null,
     lastUpdate: Date.now(),
     playerSelections: {},
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    shuffledScenarios: shuffle(scenarios) // Store a shuffled copy per game
   };
   games.set(gameId, game);
   return game;
@@ -142,7 +200,7 @@ const updateGame = (gameId, updates) => {
 };
 
 // Timer management functions
-const startGameTimer = (gameId, duration = 150) => {
+const startGameTimer = (gameId, duration = 180) => {
   // Clear any existing timer for this game
   if (gameTimers.has(gameId)) {
     clearInterval(gameTimers.get(gameId).interval);
@@ -309,8 +367,8 @@ io.on('connection', (socket) => {
       const updatedGame = updateGame(gameId, {
         state: 'playing',
         currentRound: 1,
-        currentScenario: scenarios[0], // Use the first scenario from the array
-        roundTimer: 150,
+        currentScenario: game.shuffledScenarios[0], // Use the first scenario from the shuffled array
+        roundTimer: 180,
         lastTimerUpdate: Date.now()
       });
       console.log('Game started:', { newState: updatedGame.state, newRound: updatedGame.currentRound });
@@ -325,46 +383,42 @@ io.on('connection', (socket) => {
 
   // Start round
   socket.on('startRound', ({ gameId }) => {
-    console.log('startRound event received:', { gameId });
     const game = getGame(gameId);
     if (game) {
-      console.log('Starting round:', { currentState: game.state, currentRound: game.currentRound });
+      if (game.state === 'finished') return;
       const updatedGame = updateGame(gameId, {
         state: 'round',
-        roundTimer: 150,
+        roundTimer: 180,
         lastTimerUpdate: Date.now(),
         responses: [],
         playerSelections: {}
         // Keep the currentScenario as is - it should already be set for this round
       });
-      console.log('Round started:', { newState: updatedGame.state, newRound: updatedGame.currentRound });
-      console.log('Emitting gameState to room:', updatedGame.id);
       io.to(updatedGame.id).emit('gameState', updatedGame);
-      console.log('gameState emitted successfully');
-      
-      // Start the server-side timer
-      startGameTimer(gameId, 150);
-    } else {
-      console.log('Game not found for startRound:', gameId);
+      startGameTimer(gameId, 180);
     }
   });
 
   // Submit response
-  socket.on('submitResponse', ({ gameId, teamId, playerId, scriptureId, response }) => {
+  socket.on('submitResponse', ({ gameId, teamId, playerId, scriptureId, response, playerName }) => {
     const game = getGame(gameId);
     if (game) {
+      if (game.state === 'finished') return;
+      if (game.roundTimer <= 0) {
+        socket.emit('responseRejected', { reason: 'Tiempo agotado. No se pueden enviar más respuestas.' });
+        return;
+      }
       const newResponse = {
         teamId,
         scriptureId,
         response,
         timestamp: Date.now(),
         speedScore: 0,
-        qualityScore: 0
+        qualityScore: 0,
+        playerName
       };
-      
       const updatedResponses = [...game.responses, newResponse];
       const updatedGame = updateGame(gameId, { responses: updatedResponses });
-      
       io.to(updatedGame.id).emit('gameState', updatedGame);
     }
   });
@@ -402,14 +456,19 @@ io.on('connection', (socket) => {
   socket.on('nextRound', ({ gameId }) => {
     const game = getGame(gameId);
     if (game) {
+      if (game.state === 'finished') return;
       // Stop any existing timer
       stopGameTimer(gameId);
-      
       const nextRound = game.currentRound + 1;
-      // Get the scenario for this round (array index is round number - 1)
+      // If all rounds are done, finish the game
+      if (nextRound > game.shuffledScenarios.length) {
+        const updatedGame = updateGame(gameId, { state: 'finished' });
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+        return;
+      }
+      // Get the scenario for this round from the shuffled array
       const scenarioIndex = nextRound - 1;
-      const nextScenario = scenarios[scenarioIndex] || 'No scenario available for this round';
-      
+      const nextScenario = game.shuffledScenarios[scenarioIndex] || 'No scenario available for this round';
       const updatedGame = updateGame(gameId, {
         currentRound: nextRound,
         currentScenario: nextScenario,
@@ -417,7 +476,7 @@ io.on('connection', (socket) => {
         responses: [],
         playerSelections: {},
         roundResults: [],
-        roundTimer: 150, // Reset timer for next round
+        roundTimer: 180, // Reset timer for next round
         lastTimerUpdate: Date.now()
       });
       io.to(updatedGame.id).emit('gameState', updatedGame);
@@ -428,10 +487,8 @@ io.on('connection', (socket) => {
   socket.on('endGame', ({ gameId }) => {
     const game = getGame(gameId);
     if (game) {
-      // Stop any active timer
       stopGameTimer(gameId);
-      
-      const updatedGame = updateGame(gameId, { state: 'results' });
+      const updatedGame = updateGame(gameId, { state: 'finished' });
       io.to(updatedGame.id).emit('gameState', updatedGame);
     }
   });
@@ -485,6 +542,7 @@ app.get('/api/games/:gameId', (req, res) => {
 app.get('/api/games', (req, res) => {
   const gameList = Array.from(games.values()).map(game => ({
     id: game.id,
+    gameCode: game.gameCode, // Add this line
     state: game.state,
     currentRound: game.currentRound,
     teams: game.teams,

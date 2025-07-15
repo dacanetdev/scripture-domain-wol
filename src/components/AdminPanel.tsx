@@ -3,8 +3,13 @@ import { useGame } from '../context/GameContextBackend';
 import { Team, Response as TeamResponse, Scripture } from '../types';
 import Header from './Header';
 import { adminStorage } from '../utils/storage';
+import { SparklesIcon, BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { formatTime } from '../utils/formatTime';
 
 const AdminPanel: React.FC = () => {
+  const navigate = useNavigate();
   const {
     gameState,
     currentRound,
@@ -32,23 +37,20 @@ const AdminPanel: React.FC = () => {
   const [joinCode, setJoinCode] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [confirmAdvance, setConfirmAdvance] = useState(false);
+  const [showFinishModal, setShowFinishModal] = useState(false);
   
   // Add ref to prevent multiple connection attempts
   const connectionAttemptRef = useRef<string | null>(null);
 
-  // Helper function to split scenario into scripture reference and case
-  const splitScenario = (scenario: string) => {
-    const dashIndex = scenario.indexOf(' - ');
-    if (dashIndex === -1) {
-      return { scripture: scenario, case: '' };
-    }
-    return {
-      scripture: scenario.substring(0, dashIndex).trim(),
-      case: scenario.substring(dashIndex + 3).trim()
-    };
-  };
-
-  const { scripture: scenarioScripture, case: scenarioCase } = splitScenario(currentScenario);
+  // Remove splitScenario and scenarioScripture/scenarioCase
+  let scenarioScripture = '';
+  let scenarioCase = '';
+  if (currentScenario && typeof currentScenario === 'object' && 'apply' in currentScenario) {
+    scenarioScripture = (currentScenario as any).scripture || '';
+    scenarioCase = (currentScenario as any).apply || '';
+  } else if (typeof currentScenario === 'string') {
+    scenarioCase = currentScenario;
+  }
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   useEffect(() => {
@@ -166,6 +168,16 @@ const AdminPanel: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, gameId, gameCode, joinCode]);
 
+  // Navigate to results if game ends
+  useEffect(() => {
+    if (gameState === 'results' || gameState === 'finished') {
+      if (gameCode) {
+        navigate(`/results?code=${encodeURIComponent(gameCode)}`);
+      } else {
+        navigate('/results');
+      }
+    }
+  }, [gameState, navigate, gameCode]);
 
 
   // Show loading state while initializing - MUST be after all hooks
@@ -226,24 +238,6 @@ const AdminPanel: React.FC = () => {
     
     // Reload the page to reset everything
     window.location.reload();
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getTeamEmoji = (teamName: string): string => {
-    switch (teamName) {
-      case 'Equipo Luz': return '☀️';
-      case 'Equipo Verdad': return '📖';
-      case 'Equipo Fe': return '🙏';
-      case 'Equipo Esperanza': return '🌟';
-      case 'Equipo Caridad': return '❤️';
-      case 'Equipo Virtud': return '✨';
-      default: return '⚔️';
-    }
   };
 
   // Validation logic for Next Round button
@@ -435,7 +429,7 @@ const AdminPanel: React.FC = () => {
                 return (
                   <div key={team.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center space-x-3 mb-3">
-                      <div className="text-2xl">{getTeamEmoji(team.name)}</div>
+                      <div className="text-2xl">{team.emoji}</div>
                       <div className="font-bold text-gray-800">{team.name}</div>
                       {response && (
                         <div className="text-sm text-green-600 font-bold">
@@ -450,9 +444,6 @@ const AdminPanel: React.FC = () => {
                           <div className="text-sm font-semibold text-blue-800 mb-1">
                             Escritura Seleccionada: {scripture?.reference}
                           </div>
-                          <div className="text-xs text-blue-600">
-                            "{scripture?.text.substring(0, 100)}..."
-                          </div>
                         </div>
                         
                         <div className="bg-green-50 p-3 rounded-lg">
@@ -462,6 +453,11 @@ const AdminPanel: React.FC = () => {
                           <div className="text-sm text-green-700">
                             "{response.response}"
                           </div>
+                          {response.playerName && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Jugador: <span className="font-semibold">{response.playerName}</span>
+                            </div>
+                          )}
                         </div>
                         {/* Total Points Input */}
                         <div>
@@ -520,6 +516,42 @@ const AdminPanel: React.FC = () => {
           >
             {getNextRoundButtonText()}
           </button>
+          {/* Finish Game Button */}
+          <button
+            onClick={() => setShowFinishModal(true)}
+            className="w-full py-3 px-4 rounded-lg font-semibold transition-all bg-red-600 hover:bg-red-700 text-white border-2 border-red-700 mt-2"
+          >
+            🏁 Terminar Juego
+          </button>
+          {/* Finish Game Modal */}
+          {showFinishModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+              <div className="bg-white rounded-xl shadow-2xl p-6 max-w-xs w-full text-center">
+                <div className="text-3xl mb-2">🏁</div>
+                <h2 className="text-xl font-bold text-dark-purple mb-2">Terminar Juego</h2>
+                <p className="text-gray-700 mb-4">¿Estás seguro de que deseas terminar el juego y mostrar los resultados finales?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowFinishModal(false)}
+                    className="flex-1 py-2 rounded-lg font-semibold bg-gray-200 hover:bg-gray-300 text-gray-700"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowFinishModal(false);
+                      if (gameId) {
+                        api.socket.endGame(gameId);
+                      }
+                    }}
+                    className="flex-1 py-2 rounded-lg font-semibold bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Terminar Juego
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Inline confirmation button if all answers are scored but timer is still running */}
           {allResponsesScored && !roundIsOver && confirmAdvance && (
             <button

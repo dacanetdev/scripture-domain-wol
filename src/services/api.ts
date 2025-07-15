@@ -251,7 +251,7 @@ export const api = {
       getSocket().emit('startRound', { gameId });
     },
     
-    submitResponse: (data: { gameId: string; teamId: string; playerId: string; scriptureId: number; response: string }) => {
+    submitResponse: (data: { gameId: string; teamId: string; playerId: string; scriptureId: number; response: string; playerName: string }) => {
       getSocket().emit('submitResponse', data);
     },
     

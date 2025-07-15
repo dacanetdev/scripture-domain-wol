@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage } from '../utils/storage';
 import Header from './Header';
+import { SparklesIcon, BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import AppLogo from './AppLogo';
 
 const DEBUG_MODE = process.env.REACT_APP_DEBUG_MODE === 'true';
 
@@ -145,13 +147,17 @@ const GameLobby: React.FC = () => {
   const canJoin = playerName.trim() && joinCode.trim() && selectedTeam && isConnected && gameCode === joinCode.trim();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-4">
+    <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-2 sm:p-4 relative overflow-x-hidden">
+      {/* Decorative SVG background */}
+      <div className="absolute inset-0 pointer-events-none z-0 opacity-10">
+        <AppLogo />
+      </div>
       <Header />
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto z-10">
         {DEBUG_MODE && gameId && isConnected && (
-          <div className="card p-4 mb-4">
-            <p className="text-sm text-gray-600 mb-2">Juego Conectado:</p>
-            <p className="text-2xl font-mono font-bold text-dark-purple bg-light-gold rounded-lg p-2">
+          <div className="card p-4 mb-4 animate-fade-in">
+            <p className="text-sm text-gray-600 mb-2 flex items-center gap-2"><ShieldCheckIcon className="w-5 h-5 text-victory-gold animate-bounce-slow" /> Juego Conectado:</p>
+            <p className="text-2xl font-mono font-bold text-dark-purple bg-light-gold rounded-lg p-2 animate-pulse-slow">
               {gameId.toUpperCase()}
             </p>
             <p className="text-xs text-green-600 mt-1">✅ Conectado y listo para jugar</p>
@@ -159,20 +165,23 @@ const GameLobby: React.FC = () => {
               onClick={() => {
                 window.location.reload();
               }}
-              className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+              className="mt-2 text-xs text-red-600 hover:text-red-800 underline flex items-center gap-1"
             >
-              🔄 Conectar a otro juego
+              <ArrowRightIcon className="w-4 h-4" /> Conectar a otro juego
             </button>
           </div>
         )}
 
         {/* Player Join Section */}
-        <div className="card p-6 mb-6">
-          <h3 className="text-xl font-bold text-dark-purple mb-4">👥 Únete a la Batalla</h3>
+        <div className="card p-4 sm:p-6 mb-6 bg-white/90 rounded-2xl shadow-2xl animate-fade-in">
+          <h3 className="text-xl sm:text-2xl font-bold text-dark-purple mb-4 flex items-center gap-2">
+            <UserGroupIcon className="w-6 h-6 text-celestial-blue animate-bounce" />
+            Únete a la Batalla
+          </h3>
           {/* Always require game code to join */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ingresa el código del juego
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <ShieldCheckIcon className="w-5 h-5 text-victory-gold animate-glow" /> Ingresa el código del juego
             </label>
             <input
               type="text"
@@ -182,14 +191,14 @@ const GameLobby: React.FC = () => {
                 setJoinError('');
               }}
               placeholder="Código del Juego (mínimo 3 caracteres)"
-              className={`w-full px-4 py-3 border rounded-lg mb-2 ${
+              className={`w-full px-4 py-3 border rounded-lg mb-2 text-lg font-mono tracking-widest ${
                 isConnecting ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
               }`}
               maxLength={20}
             />
             {isConnecting && (
-              <div className="text-blue-600 text-sm mb-2">
-                🔄 Conectando al juego...
+              <div className="text-blue-600 text-sm mb-2 flex items-center gap-1">
+                <ArrowRightIcon className="w-4 h-4 animate-bounce-slow" /> Conectando al juego...
                 <div className="text-xs text-gray-500 mt-1">
                   {!isConnected ? "Estableciendo conexión..." : "Conectado, verificando juego..."}
                 </div>
@@ -208,43 +217,36 @@ const GameLobby: React.FC = () => {
                 onClick={async () => {
                   // Connect to game
                   connectToGame(joinCode.trim());
-                  
                   // Wait for state synchronization to complete
                   let attempts = 0;
                   const maxAttempts = 50; // 5 seconds max wait
-                  
                   while (attempts < maxAttempts) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     attempts++;
-                    
-                    // Check if we're still initializing
                     if (!isInitializing) {
                       break;
                     }
                   }
-                  
-                  // Navigate to dashboard
                   navigate('/dashboard');
                 }}
-                className="btn-secondary w-full text-xl py-3 mb-2 bg-yellow-400 text-dark-purple font-bold rounded-lg shadow hover:bg-yellow-500"
+                className="btn-secondary w-full text-xl py-3 mb-2 bg-yellow-400 text-dark-purple font-bold rounded-lg shadow hover:bg-yellow-500 flex items-center justify-center gap-2"
                 style={{ marginBottom: '1rem' }}
               >
-                👁️ Ver Juego
+                <BookOpenIcon className="w-6 h-6 text-celestial-blue animate-glow" /> Ver Juego
               </button>
             )}
           </div>
-          
           {/* Player Name Input */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tu Nombre
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <UserGroupIcon className="w-5 h-5 text-yellow-400 animate-bounce" /> Tu Nombre
             </label>
             <input
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="Ingresa tu nombre"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-light-gold focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-light-gold focus:border-transparent text-lg"
               maxLength={20}
             />
           </div>

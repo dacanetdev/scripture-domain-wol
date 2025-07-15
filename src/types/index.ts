@@ -22,6 +22,7 @@ export interface Response {
   timestamp: number;
   speedScore: number;
   qualityScore: number;
+  playerName?: string;
 }
 
 export interface RoundResult {
@@ -42,7 +43,7 @@ export interface GameResults {
   [teamId: string]: number; // Total points across all rounds
 }
 
-export type GameState = 'lobby' | 'playing' | 'round' | 'results';
+export type GameState = 'lobby' | 'playing' | 'round' | 'results' | 'finished';
 
 export interface GameContextType {
   gameId: string | null;

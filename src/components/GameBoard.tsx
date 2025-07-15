@@ -61,7 +61,7 @@ const GameBoard: React.FC = () => {
       adminGameInfo
     });
     
-    if (gameState === 'results') {
+    if (gameState === 'results' || gameState === 'finished') {
       navigate('/results');
     } else if (gameState === 'playing' || gameState === 'round') {
       navigate('/game');
@@ -159,19 +159,17 @@ const GameBoard: React.FC = () => {
   const playerId = `${player.name}-${team.id}`;
   const playerSelection = playerSelections[playerId] || { selectedScripture: null, teamResponse: '' };
 
-  // Helper function to split scenario into scripture reference and case
-  const splitScenario = (scenario: string) => {
-    const dashIndex = scenario.indexOf(' - ');
-    if (dashIndex === -1) {
-      return { scripture: scenario, case: '' };
-    }
-    return {
-      scripture: scenario.substring(0, dashIndex).trim(),
-      case: scenario.substring(dashIndex + 3).trim()
-    };
-  };
-
-  const { case: scenarioCase } = splitScenario(currentScenario);
+  // Remove splitScenario and scenarioCase
+  let scenarioScripture = '';
+  let scenarioKey = '';
+  let scenarioCase = '';
+  if (currentScenario && typeof currentScenario === 'object' && 'apply' in currentScenario) {
+    scenarioScripture = (currentScenario as any).scripture || '';
+    scenarioKey = (currentScenario as any).key || '';
+    scenarioCase = (currentScenario as any).apply || '';
+  } else if (typeof currentScenario === 'string') {
+    scenarioCase = currentScenario;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-4">

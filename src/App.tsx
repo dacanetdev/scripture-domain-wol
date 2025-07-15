@@ -8,6 +8,7 @@ import ResultsScreen from './components/ResultsScreen';
 import Dashboard from './components/Dashboard';
 import DashboardAccess from './components/DashboardAccess';
 import ConnectionStatusIndicator from './components/ConnectionStatus';
+import Splash from './components/Splash';
 
 // Utility to check for debug flag in URL
 const isDebugMode = () => {
@@ -22,7 +23,7 @@ const AppContent: React.FC = () => {
     <div className="App">
       {isDebugMode() && <ConnectionStatusIndicator />}
       <Routes>
-        <Route path="/" element={<GameLobby />} />
+        <Route path="/" element={<Splash />} />
         <Route path="/lobby" element={<GameLobby />} />
         <Route path="/game" element={<GameBoard />} />
         <Route path="/admin" element={<AdminPanel />} />
