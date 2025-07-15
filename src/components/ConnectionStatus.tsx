@@ -93,7 +93,6 @@ const ConnectionStatusIndicator: React.FC = () => {
         )}
       </div>
       
-      {/* Test connection button */}
       <div className="mt-2">
         <button
           onClick={handleTestConnection}
@@ -109,7 +108,6 @@ const ConnectionStatusIndicator: React.FC = () => {
         )}
       </div>
       
-      {/* Mobile-specific tips */}
       {status === 'error' && (
         <div className="mt-2 text-xs text-gray-600">
           <p>💡 Consejos para móviles:</p>
@@ -123,7 +121,6 @@ const ConnectionStatusIndicator: React.FC = () => {
         </div>
       )}
       
-      {/* Debug info for mobile */}
       <div className="mt-2 text-xs text-gray-500">
         <p>📱 {navigator.userAgent.includes('Mobile') ? 'Dispositivo móvil detectado' : 'Dispositivo de escritorio'}</p>
         <p>🌐 {window.location.protocol}//{window.location.host}</p>
