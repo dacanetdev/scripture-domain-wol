@@ -191,6 +191,26 @@ export const forceReconnect = () => {
   }
 };
 
+// Get detailed connection info
+export const getConnectionInfo = () => {
+  if (!socket) {
+    return {
+      connected: false,
+      transport: 'none',
+      url: API_BASE_URL,
+      id: null
+    };
+  }
+  
+  return {
+    connected: socket.connected,
+    transport: socket.io.engine.transport.name,
+    url: API_BASE_URL,
+    id: socket.id,
+    readyState: socket.io.engine.readyState
+  };
+};
+
 // Test connection function
 export const testConnection = async () => {
   try {

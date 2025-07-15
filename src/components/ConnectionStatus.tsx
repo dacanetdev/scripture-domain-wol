@@ -1,31 +1,98 @@
 import React, { useEffect, useState } from 'react';
-import { onConnectionStatusChange, getConnectionStatus, forceReconnect, testConnection, ConnectionStatus } from '../services/api';
+import { onConnectionStatusChange, getConnectionStatus, forceReconnect, testConnection, getConnectionInfo, ConnectionStatus } from '../services/api';
 
 const ConnectionStatusIndicator: React.FC = () => {
   const [status, setStatus] = useState<ConnectionStatus>(getConnectionStatus());
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<string>('');
+  const [showDetails, setShowDetails] = useState(false);
+  const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
+  const [connectionInfo, setConnectionInfo] = useState(getConnectionInfo());
 
   useEffect(() => {
     const unsubscribe = onConnectionStatusChange((newStatus) => {
       setStatus(newStatus);
+      setConnectionInfo(getConnectionInfo());
+      addLog(`Status changed to: ${newStatus}`);
     });
 
-    return unsubscribe;
+    // Update connection info periodically
+    const interval = setInterval(() => {
+      setConnectionInfo(getConnectionInfo());
+    }, 2000);
+
+    // Capture console logs for connection debugging
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    console.log = (...args) => {
+      originalLog.apply(console, args);
+      if (args[0] && typeof args[0] === 'string' && 
+          (args[0].includes('🔌') || args[0].includes('✅') || args[0].includes('❌') || 
+           args[0].includes('🔄') || args[0].includes('🌐') || args[0].includes('⏰'))) {
+        addLog(args.join(' '));
+      }
+    };
+
+    console.error = (...args) => {
+      originalError.apply(console, args);
+      if (args[0] && typeof args[0] === 'string' && 
+          (args[0].includes('🔌') || args[0].includes('✅') || args[0].includes('❌') || 
+           args[0].includes('🔄') || args[0].includes('🌐') || args[0].includes('⏰'))) {
+        addLog(`ERROR: ${args.join(' ')}`);
+      }
+    };
+
+    console.warn = (...args) => {
+      originalWarn.apply(console, args);
+      if (args[0] && typeof args[0] === 'string' && 
+          (args[0].includes('🔌') || args[0].includes('✅') || args[0].includes('❌') || 
+           args[0].includes('🔄') || args[0].includes('🌐') || args[0].includes('⏰'))) {
+        addLog(`WARN: ${args.join(' ')}`);
+      }
+    };
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+      console.log = originalLog;
+      console.error = originalError;
+      console.warn = originalWarn;
+    };
   }, []);
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setConnectionLogs(prev => [...prev.slice(-9), `${timestamp}: ${message}`]);
+  };
 
   const handleTestConnection = async () => {
     setIsTesting(true);
     setTestResult('');
+    addLog('🧪 Starting HTTP connection test...');
     
     try {
       const success = await testConnection();
-      setTestResult(success ? '✅ HTTP connection successful' : '❌ HTTP connection failed');
+      const result = success ? '✅ HTTP connection successful' : '❌ HTTP connection failed';
+      setTestResult(result);
+      addLog(result);
     } catch (error) {
-      setTestResult('❌ Test failed');
+      const errorMsg = `❌ Test failed: ${error}`;
+      setTestResult(errorMsg);
+      addLog(errorMsg);
     } finally {
       setIsTesting(false);
     }
+  };
+
+  const handleForceReconnect = () => {
+    addLog('🔄 Manual reconnect triggered');
+    forceReconnect();
+  };
+
+  const clearLogs = () => {
+    setConnectionLogs([]);
   };
 
   const getStatusConfig = (status: ConnectionStatus) => {
@@ -78,19 +145,27 @@ const ConnectionStatusIndicator: React.FC = () => {
   const config = getStatusConfig(status);
 
   return (
-    <div className={`fixed top-4 right-4 z-50 px-3 py-2 rounded-lg border ${config.bgColor} ${config.borderColor} shadow-lg transition-all duration-300 max-w-sm`}>
-      <div className="flex items-center space-x-2">
+    <div className={`fixed top-4 right-4 z-50 px-3 py-2 rounded-lg border ${config.bgColor} ${config.borderColor} shadow-lg transition-all duration-300 max-w-md`}>
+      <div className="flex items-center justify-between">
         <span className={`text-sm font-medium ${config.color}`}>
           {config.text}
         </span>
-        {status === 'error' && (
+        <div className="flex space-x-1">
           <button
-            onClick={forceReconnect}
-            className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors"
+            onClick={() => setShowDetails(!showDetails)}
+            className="text-xs bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600 transition-colors"
           >
-            Reintentar
+            {showDetails ? '📋 Ocultar' : '📋 Detalles'}
           </button>
-        )}
+          {status === 'error' && (
+            <button
+              onClick={handleForceReconnect}
+              className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors"
+            >
+              🔄
+            </button>
+          )}
+        </div>
       </div>
       
       <div className="mt-2">
@@ -99,7 +174,7 @@ const ConnectionStatusIndicator: React.FC = () => {
           disabled={isTesting}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
         >
-          {isTesting ? '🧪 Probando...' : '🧪 Probar Conexión'}
+          {isTesting ? '🧪 Probando...' : '🧪 Probar HTTP'}
         </button>
         {testResult && (
           <div className="mt-1 text-xs text-gray-600">
@@ -107,6 +182,42 @@ const ConnectionStatusIndicator: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {showDetails && (
+        <div className="mt-3 border-t pt-2">
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-xs font-bold text-gray-700">📊 Logs de Conexión</h4>
+            <button
+              onClick={clearLogs}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              🗑️ Limpiar
+            </button>
+          </div>
+          
+          <div className="max-h-32 overflow-y-auto bg-gray-50 p-2 rounded text-xs font-mono">
+            {connectionLogs.length === 0 ? (
+              <p className="text-gray-500">No hay logs aún...</p>
+            ) : (
+              connectionLogs.map((log, index) => (
+                <div key={index} className="text-gray-700 mb-1">
+                  {log}
+                </div>
+              ))
+            )}
+          </div>
+          
+          <div className="mt-2 text-xs text-gray-600 space-y-1">
+            <p><strong>🔌 Socket:</strong> {connectionInfo.connected ? '✅ Conectado' : '❌ Desconectado'}</p>
+            <p><strong>🚀 Transporte:</strong> {connectionInfo.transport}</p>
+            <p><strong>🆔 Socket ID:</strong> {connectionInfo.id || 'N/A'}</p>
+            <p><strong>📡 Ready State:</strong> {connectionInfo.readyState}</p>
+            <p><strong>🌐 API URL:</strong> {connectionInfo.url}</p>
+            <p><strong>📱 Dispositivo:</strong> {navigator.userAgent.includes('Mobile') ? 'Móvil' : 'Escritorio'}</p>
+            <p><strong>🌍 Navegador:</strong> {navigator.userAgent.split(' ').pop()?.split('/')[0] || 'Desconocido'}</p>
+          </div>
+        </div>
+      )}
       
       {status === 'error' && (
         <div className="mt-2 text-xs text-gray-600">
@@ -120,11 +231,6 @@ const ConnectionStatusIndicator: React.FC = () => {
           </ul>
         </div>
       )}
-      
-      <div className="mt-2 text-xs text-gray-500">
-        <p>📱 {navigator.userAgent.includes('Mobile') ? 'Dispositivo móvil detectado' : 'Dispositivo de escritorio'}</p>
-        <p>🌐 {`${window.location.protocol}//${window.location.host}`}</p>
-      </div>
     </div>
   );
 };
