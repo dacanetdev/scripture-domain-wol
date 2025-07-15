@@ -33,12 +33,13 @@
     "nodemon": "^3.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "npm run build && cp -r build backend/ && cd backend && npm install && node server.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "server": "node backend/server.js",
-    "dev": "nodemon backend/server.js"
+    "dev": "nodemon backend/server.js",
+    "dev:frontend": "react-scripts start"
   },
   "eslintConfig": {
     "extends": [
