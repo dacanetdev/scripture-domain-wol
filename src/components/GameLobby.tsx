@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage } from '../utils/storage';
 import Header from './Header';
-import { SparklesIcon, BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import AppLogo from './AppLogo';
 
 const DEBUG_MODE = process.env.REACT_APP_DEBUG_MODE === 'true';

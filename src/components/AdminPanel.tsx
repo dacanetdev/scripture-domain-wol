@@ -3,7 +3,6 @@ import { useGame } from '../context/GameContextBackend';
 import { Team, Response as TeamResponse, Scripture } from '../types';
 import Header from './Header';
 import { adminStorage } from '../utils/storage';
-import { SparklesIcon, BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { formatTime } from '../utils/formatTime';

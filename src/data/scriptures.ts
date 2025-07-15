@@ -1,5 +1,3 @@
-import { Scripture } from '../types';
-
 export const scriptures = [
   {
     id: 1,

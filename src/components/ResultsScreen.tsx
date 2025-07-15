@@ -1,8 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useGame } from '../context/GameContextBackend';
 import Header from './Header';
-import { SparklesIcon, BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 // Add confetti import
 import Confetti from 'react-confetti';
 import { api } from '../services/api';
@@ -13,7 +11,6 @@ function useQuery() {
 
 const ResultsScreen: React.FC = () => {
   console.log('ResultsScreen mounted');
-  const { gameResults, teams, responses, scenarios, gameState } = useGame();
   const navigate = useNavigate();
   const query = useQuery();
   const code = query.get('code');
@@ -60,23 +57,18 @@ const ResultsScreen: React.FC = () => {
   }, [code]); // <-- Only depend on code!
 
   // Use either context or external data
-  const data = externalData || {
-    gameResults,
-    teams,
-    responses,
-    scenarios
-  };
+  const data = externalData;
 
   // Only run this effect if there is NO code param (context fallback)
   React.useEffect(() => {
     if (code) return; // skip if using code param
-    if (gameState === 'lobby') {
+    if (data?.gameState === 'lobby') {
       navigate('/lobby');
-    } else if (gameState === 'playing' || gameState === 'round') {
+    } else if (data?.gameState === 'playing' || data?.gameState === 'round') {
       navigate('/game');
     }
     // Do NOT redirect away if gameState is 'finished' or 'results'
-  }, [gameState, navigate, code, externalData]);
+  }, [data?.gameState, navigate, code, externalData]);
 
   // If loading, show loading
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-2xl">Cargando resultados...</div></div>;
@@ -85,16 +77,24 @@ const ResultsScreen: React.FC = () => {
   // If code param and externalData not loaded yet, don't render
   if (code && !externalData) return null;
   // If no data, don't render
-  if (!data.gameResults) return null;
+  if (!data) return null;
+
+  console.log('externalData:', externalData);
+  // Local debug mode: check for ?debug in the URL
+  const isDebugMode = () => window.location.search.includes('debug');
+  if (code && externalData && isDebugMode()) {
+    return <pre>{JSON.stringify(externalData, null, 2)}</pre>;
+  }
 
   // Calculate final rankings
-  const teamRankings = data.teams
-    .filter((team: any) => team.id !== 'admin' && team.id !== 'viewer')
+  const teamRankings = (data?.teams || [])
+    .filter((team: any) => team && team.id !== 'admin' && team.id !== 'viewer')
     .map((team: any) => ({
       ...team,
-      totalScore: data.gameResults[team.id] || 0,
-      responseCount: data.responses.filter((r: any) => r.teamId === team.id).length
-    })).sort((a: any, b: any) => b.totalScore - a.totalScore);
+      totalScore: (data?.gameResults?.[team.id]) || 0,
+      responseCount: (data?.responses || []).filter((r: any) => r && r.teamId === team.id).length
+    }))
+    .sort((a: any, b: any) => b.totalScore - a.totalScore);
 
   const winner = teamRankings[0];
   const isTie = teamRankings.length > 1 && teamRankings[0].totalScore === teamRankings[1].totalScore;
@@ -124,7 +124,7 @@ ${teamRankings.map((team: any, index: number) =>
 ${isTie ? '🤝 ¡EMPATE!' : ''}
 
 📊 ESTADÍSTICAS DEL JUEGO:
-- Total de Rondas: ${data.scenarios.length}
+- Total de Rondas: ${rounds.length}
 - Total de Respuestas: ${data.responses.length}
 - Equipos Participantes: ${teamRankings.length}
 
@@ -138,6 +138,9 @@ Generado el ${new Date().toLocaleDateString()}`;
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Use rounds for all round/escenario counts and displays
+  const rounds = data?.rounds || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-4">
@@ -253,20 +256,20 @@ Generado el ${new Date().toLocaleDateString()}`;
           <h3 className="text-xl font-bold text-dark-purple mb-4">📊 Estadísticas de Batalla</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800">{data.scenarios.length}</div>
+              <div className="text-2xl font-bold text-gray-800">{rounds.length}</div>
               <div className="text-gray-500">Rondas</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800">{data.responses.length}</div>
+              <div className="text-2xl font-bold text-gray-800">{(data?.responses || []).length}</div>
               <div className="text-gray-500">Respuestas</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800">{teamRankings.length}</div>
+              <div className="text-2xl font-bold text-gray-800">{(teamRankings || []).length}</div>
               <div className="text-gray-500">Equipos</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-800">
-                {Math.round(data.responses.length / data.scenarios.length)}
+                {Math.round((data?.responses || []).length / (data?.scenarios || []).length)}
               </div>
               <div className="text-gray-500">Prom/ronda</div>
             </div>
@@ -297,7 +300,7 @@ Generado el ${new Date().toLocaleDateString()}`;
             ¡Felicitaciones Guerreros!
           </h3>
           <p className="text-sm text-gray-600">
-            ¡Han batallado a través de {data.scenarios.length} escenarios y han demostrado su conocimiento de las escrituras! 
+            ¡Han batallado a través de {rounds.length} escenarios y han demostrado su conocimiento de las escrituras! 
             ¡Que la luz de la verdad continúe guiando su camino!
           </p>
         </div>

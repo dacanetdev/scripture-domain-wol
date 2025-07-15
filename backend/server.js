@@ -107,6 +107,7 @@ const gameTimers = new Map(); // Store active timers for each game
 // Game management functions
 const createGame = (gameId) => {
   const gameCode = gameId.slice(-6); // Last 6 digits as the game code
+  const shuffledScenarios = shuffle(scenarios);
   const game = {
     id: gameId,
     gameCode: gameCode, // Add short game code for easy lookup
@@ -124,7 +125,8 @@ const createGame = (gameId) => {
     lastUpdate: Date.now(),
     playerSelections: {},
     createdAt: Date.now(),
-    shuffledScenarios: shuffle(scenarios) // Store a shuffled copy per game
+    shuffledScenarios,
+    rounds: [], // Only played rounds will be added
   };
   games.set(gameId, game);
   return game;
@@ -386,6 +388,11 @@ io.on('connection', (socket) => {
     const game = getGame(gameId);
     if (game) {
       if (game.state === 'finished') return;
+      const currentScenario = game.shuffledScenarios[game.currentRound - 1];
+      if (!game.rounds) game.rounds = [];
+      if (currentScenario && !game.rounds.find(r => r.key === currentScenario.key)) {
+        game.rounds.push(currentScenario);
+      }
       const updatedGame = updateGame(gameId, {
         state: 'round',
         roundTimer: 180,
@@ -447,7 +454,14 @@ io.on('connection', (socket) => {
         updatedScores = [...game.teamRoundScores, newScore];
       }
       
-      const updatedGame = updateGame(gameId, { teamRoundScores: updatedScores });
+      // Update responses for this team and round with the scores
+      const updatedResponses = (game.responses || []).map(r => {
+        if (r.teamId === teamId && r.roundNumber === roundNumber) {
+          return { ...r, speedScore, qualityScore };
+        }
+        return r;
+      });
+      const updatedGame = updateGame(gameId, { teamRoundScores: updatedScores, responses: updatedResponses });
       io.to(updatedGame.id).emit('gameState', updatedGame);
     }
   });
@@ -488,7 +502,15 @@ io.on('connection', (socket) => {
     const game = getGame(gameId);
     if (game) {
       stopGameTimer(gameId);
-      const updatedGame = updateGame(gameId, { state: 'finished' });
+      // Calculate final results
+      const results = {};
+      for (const team of game.teams) {
+        // Sum all round scores for this team
+        const teamScores = (game.teamRoundScores || []).filter(s => s.teamId === team.id);
+        results[team.id] = teamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
+      }
+      // Save results
+      const updatedGame = updateGame(gameId, { state: 'finished', gameResults: results });
       io.to(updatedGame.id).emit('gameState', updatedGame);
     }
   });
@@ -546,9 +568,19 @@ app.get('/api/games', (req, res) => {
     state: game.state,
     currentRound: game.currentRound,
     teams: game.teams,
-    createdAt: game.createdAt
+    createdAt: game.createdAt,
+    rounds: game.rounds || game.shuffledScenarios || [] // Add rounds to response
   }));
   res.json(gameList);
+});
+
+app.get('/api/game/:id', (req, res) => {
+  const game = getGame(req.params.id);
+  if (!game) return res.status(404).json({ error: 'Game not found' });
+  res.json({
+    ...game,
+    rounds: game.rounds || game.shuffledScenarios || [] // Add rounds to response
+  });
 });
 
 // Serve static files in production

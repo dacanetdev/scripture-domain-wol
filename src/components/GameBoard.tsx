@@ -160,12 +160,8 @@ const GameBoard: React.FC = () => {
   const playerSelection = playerSelections[playerId] || { selectedScripture: null, teamResponse: '' };
 
   // Remove splitScenario and scenarioCase
-  let scenarioScripture = '';
-  let scenarioKey = '';
   let scenarioCase = '';
   if (currentScenario && typeof currentScenario === 'object' && 'apply' in currentScenario) {
-    scenarioScripture = (currentScenario as any).scripture || '';
-    scenarioKey = (currentScenario as any).key || '';
     scenarioCase = (currentScenario as any).apply || '';
   } else if (typeof currentScenario === 'string') {
     scenarioCase = currentScenario;
