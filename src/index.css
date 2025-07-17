@@ -42,4 +42,27 @@
   .scenario-text {
     @apply text-xl font-semibold text-white text-center leading-relaxed;
   }
+  
+  /* Additional utilities for improved scripture selector */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .scale-102 {
+    transform: scale(1.02);
+  }
+  
+  .hover\:scale-102:hover {
+    transform: scale(1.02);
+  }
 } 

@@ -279,26 +279,74 @@ const GameBoard: React.FC = () => {
                 <div className="card p-6 mb-6">
                   <h3 className="text-xl font-bold text-dark-purple mb-4">Selecciona una Escritura</h3>
                   
-                  {/* Mobile-friendly scripture selector */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Escritura:
+                  {/* Modern card-based scripture selector */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Escritura: <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={playerSelection.selectedScripture || ''}
-                      onChange={(e) => setPlayerSelection(playerId, e.target.value ? parseInt(e.target.value) : null, playerSelection.teamResponse)}
-                      className="w-full p-4 border-2 border-gray-300 rounded-lg bg-white text-gray-900 font-medium text-xl min-h-[200px]"
-                      disabled={hasSubmitted}
-                      size={8}
-                      style={{ fontSize: '18px', lineHeight: '1.5' }}
-                    >
-                      <option value="" style={{ fontSize: '18px', padding: '12px' }}>-- Selecciona una escritura --</option>
-                      {scriptures.map(s => (
-                        <option key={s.id} value={s.id} style={{ fontSize: '18px', padding: '12px' }}>
-                          {s.reference}
-                        </option>
+                    
+                    {/* Scripture cards grid */}
+                    <div className="grid gap-3 max-h-96 overflow-y-auto">
+                      {scriptures.map(scripture => (
+                        <div
+                          key={scripture.id}
+                          onClick={() => !hasSubmitted && setPlayerSelection(playerId, scripture.id, playerSelection.teamResponse)}
+                          className={`scripture-card cursor-pointer transition-all duration-200 ${
+                            playerSelection.selectedScripture === scripture.id 
+                              ? 'selected ring-2 ring-light-gold scale-105' 
+                              : 'hover:scale-102 hover:shadow-lg'
+                          } ${hasSubmitted ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                                playerSelection.selectedScripture === scripture.id 
+                                  ? 'bg-light-gold text-dark-purple' 
+                                  : 'bg-gray-200 text-gray-600'
+                              }`}>
+                                {playerSelection.selectedScripture === scripture.id ? '✓' : '📖'}
+                              </div>
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-bold text-gray-800 text-base">
+                                  {scripture.reference}
+                                </h4>
+                                {playerSelection.selectedScripture === scripture.id && (
+                                  <div className="text-light-gold text-xl">✓</div>
+                                )}
+                              </div>
+                              
+                              <p className="text-gray-700 text-sm mb-2 leading-relaxed line-clamp-2">
+                                "{scripture.text}"
+                              </p>
+                              
+                              <div className="space-y-1">
+                                <div className="bg-blue-50 p-2 rounded text-xs">
+                                  <div className="font-semibold text-blue-700 mb-1">💡 Clave:</div>
+                                  <div className="text-blue-800 line-clamp-1">{scripture.key}</div>
+                                </div>
+                                
+                                <div className="bg-green-50 p-2 rounded text-xs">
+                                  <div className="font-semibold text-green-700 mb-1">🎯 Aplicar:</div>
+                                  <div className="text-green-800 line-clamp-1">{scripture.apply}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </select>
+                    </div>
+                    
+                    {/* Selection indicator */}
+                    {playerSelection.selectedScripture && (
+                      <div className="mt-3 p-3 bg-light-gold/20 rounded-lg border border-light-gold">
+                        <div className="text-sm font-semibold text-dark-purple">
+                          ✅ Escritura seleccionada: {scriptures.find(s => s.id === playerSelection.selectedScripture)?.reference}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Response textarea */}
