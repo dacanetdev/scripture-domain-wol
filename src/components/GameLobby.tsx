@@ -180,7 +180,8 @@ const GameLobby: React.FC = () => {
     const playerData = {
       name: playerName.trim(),
       teamId: selectedTeam,
-      gameId: gameId // Use the full gameId from context, not the partial code
+      gameId: gameId, // Use the full gameId from context, not the partial code
+      emoji: newTeamEmoji // Include the emoji in stored data
     };
     console.log('Saving player data:', playerData);
     playerStorage.set(playerData);
