@@ -34,6 +34,17 @@ const GameLobby: React.FC = () => {
     }
   }, [searchParams]);
 
+  // On mount, pre-populate join form fields from playerStorage if available
+  useEffect(() => {
+    const playerData = playerStorage.get();
+    if (playerData) {
+      setPlayerName(playerData.name || '');
+      setSelectedTeam(playerData.teamId || null);
+      setJoinCode(playerData.gameId || '');
+      setNewTeamEmoji(playerData.emoji || '');
+    }
+  }, []);
+
   // On mount, check if player is already joined and redirect if needed
   useEffect(() => {
     const playerData = playerStorage.get();
@@ -231,26 +242,7 @@ const GameLobby: React.FC = () => {
         )}
 
         {/* Reconnection banner for users with stored data */}
-        {playerStorage.get() && (
-          <div className="card p-4 mb-4 bg-blue-50 border border-blue-200 rounded-xl animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ArrowPathIcon className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium text-blue-800">Sesión anterior encontrada</p>
-                  <p className="text-xs text-blue-600">Puedes reconectar con tu información guardada</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowReconnectModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center gap-1"
-              >
-                <ArrowPathIcon className="w-4 h-4" />
-                Reconectar
-              </button>
-            </div>
-          </div>
-        )}
+        {/* (Removed: now handled by pre-populating the form) */}
 
         {/* Player Join Section */}
         <div className="card p-4 sm:p-6 mb-6 bg-white/90 rounded-2xl shadow-2xl animate-fade-in">

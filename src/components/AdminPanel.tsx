@@ -279,6 +279,9 @@ const AdminPanel: React.FC = () => {
     return currentRound >= 14 ? '🏁 Terminar Juego' : '⚔️ Siguiente Ronda';
   };
 
+  // Helper to check for debug param in URL
+  const showDebug = typeof window !== 'undefined' && window.location.search.includes('debug');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-4">
       <Header />
@@ -378,18 +381,20 @@ const AdminPanel: React.FC = () => {
         )}
 
         {/* Debug Info - Always show current state */}
-        <div className="card p-4 mb-4 bg-gray-100">
-          <h3 className="text-sm font-bold text-gray-700 mb-2">🔍 Debug Info</h3>
-          <div className="text-xs text-gray-600 space-y-1">
-            <div>gameState: {gameState}</div>
-            <div>currentRound: {currentRound}</div>
-            <div>isAdmin: {isAdmin ? 'true' : 'false'}</div>
-            <div>gameId: {gameId}</div>
-            <div>gameCode: {gameCode}</div>
-            <div>isConnected: {isConnected ? 'true' : 'false'}</div>
-            <div>isInitializing: {isInitializing ? 'true' : 'false'}</div>
+        {showDebug && (
+          <div className="card p-4 mb-4 bg-gray-100">
+            <h3 className="text-sm font-bold text-gray-700 mb-2">🔍 Debug Info</h3>
+            <div className="text-xs text-gray-600 space-y-1">
+              <div>gameState: {gameState}</div>
+              <div>currentRound: {currentRound}</div>
+              <div>isAdmin: {isAdmin ? 'true' : 'false'}</div>
+              <div>gameId: {gameId}</div>
+              <div>gameCode: {gameCode}</div>
+              <div>isConnected: {isConnected ? 'true' : 'false'}</div>
+              <div>isInitializing: {isInitializing ? 'true' : 'false'}</div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Start Game Option - Show when game hasn't started */}
         {gameState === 'lobby' && (

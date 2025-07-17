@@ -62,9 +62,18 @@ const DashboardAccess: React.FC = () => {
     const isValid = await validateGameCode(gameCode);
     
     if (isValid) {
-      // Store the game code for the dashboard
-      localStorage.setItem('dashboardGameCode', gameCode);
-      navigate('/dashboard');
+      // Listen for the first gameState to get the full gameId
+      const socket = getSocket();
+      const onGameState = (game: any) => {
+        if (game && game.id) {
+          localStorage.setItem('dashboardGameId', game.id);
+        }
+        socket.off('gameState', onGameState);
+        navigate('/dashboard');
+      };
+      socket.once('gameState', onGameState);
+      // Request the game state (again) to trigger the response
+      socket.emit('requestGameState', { gameId: gameCode });
     } else {
       setError('Código de juego no válido.');
     }

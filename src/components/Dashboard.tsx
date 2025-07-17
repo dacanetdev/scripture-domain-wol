@@ -39,16 +39,27 @@ const Dashboard: React.FC = () => {
   // Initialize dashboard on mount - check for stored admin data or dashboard game code
   useEffect(() => {
     const adminData = adminStorage.get();
+    const dashboardGameId = localStorage.getItem('dashboardGameId');
     const dashboardGameCode = localStorage.getItem('dashboardGameCode');
     
     if (adminData && adminData.gameId && !gameId && !isInitializing) {
       console.log('Dashboard: Found stored admin data, connecting to game:', adminData.gameId);
       connectToGameAsAdmin(adminData.gameId);
+    } else if (dashboardGameId && !gameId && !isInitializing) {
+      console.log('Dashboard: Found dashboard gameId, connecting to game:', dashboardGameId);
+      connectToGameAsAdmin(dashboardGameId);
     } else if (dashboardGameCode && !gameId && !isInitializing) {
       console.log('Dashboard: Found dashboard game code, connecting to game:', dashboardGameCode);
       connectToGameAsAdmin(dashboardGameCode);
     }
   }, [connectToGameAsAdmin, gameId, isInitializing]); // Include dependencies to fix warning
+
+  // After receiving a new gameId, always update localStorage
+  useEffect(() => {
+    if (gameId) {
+      localStorage.setItem('dashboardGameId', gameId);
+    }
+  }, [gameId]);
 
   // Set up connection timeout
   useEffect(() => {
