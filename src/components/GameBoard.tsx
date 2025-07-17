@@ -57,12 +57,10 @@ const GameBoard: React.FC = () => {
       const isAdminInGame = isAdmin && adminGameInfo && adminGameInfo.gameId === gameId;
       // Check if player is joined using multiple methods
       const playerData = playerStorage.get();
-      const sessionGameId = gameSessionStorage.get();
-      const isPlayerJoined = playerStorage.isJoined(teams, gameId);
       const hasPlayerData = playerData && playerData.name && playerData.teamId;
       const isConnectedToGame = isConnected && !!gameId;
       // User is considered joined if any of these conditions are met
-      const isUserJoined = isPlayerJoined || isAdminInGame || (hasPlayerData && isConnectedToGame);
+      const isUserJoined = playerStorage.isJoined(teams, gameId) || isAdminInGame || (hasPlayerData && isConnectedToGame);
       if (isWaitingForJoin) {
         // Show spinner while waiting for confirmation
         if ((gameState === 'playing' || gameState === 'round') && isUserJoined) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage } from '../utils/storage';
-import { XMarkIcon, UserCircleIcon, UsersIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, UsersIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { getSocket } from '../services/api';
 
 interface JoinGameModalProps {
@@ -13,7 +13,7 @@ interface JoinGameModalProps {
 const ICONS = ['☀️', '🌙', '⭐', '🔥', '🌈', '⚡', '🦁', '🦅', '🐢', '🐉', '🦄', '🐺'];
 
 const JoinGameModal: React.FC<JoinGameModalProps> = ({ isOpen, onClose, onJoin }) => {
-  const { teams, gameId, joinTeam, isConnected } = useGame();
+  const { teams, isConnected } = useGame();
   const [gameCode, setGameCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('');

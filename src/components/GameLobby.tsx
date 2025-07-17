@@ -57,10 +57,7 @@ const GameLobby: React.FC = () => {
     // Debounce navigation to allow state to update after reconnection
     const debounce = setTimeout(() => {
       const playerData = playerStorage.get();
-      const sessionGameId = gameSessionStorage.get();
       const isPlayerJoined = playerStorage.isJoined(teams, gameId);
-      const hasPlayerData = playerData && playerData.name && playerData.teamId;
-      const isConnectedToGame = isConnected && !!gameId;
       
       // Only navigate if player is confirmed as joined in the latest teams list
       if (isWaitingForJoin) {
