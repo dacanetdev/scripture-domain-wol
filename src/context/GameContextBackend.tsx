@@ -101,6 +101,7 @@ const gameReducer = (state: GameStateType, action: GameAction): GameStateType =>
         ...backendState,
         gameId: backendState.id || backendState.gameId || state.gameId,
         gameCode: backendState.gameCode || state.gameCode,
+        gameState: (backendState.state || backendState.gameState || state.gameState) as GameState, // Map backend 'state' to frontend 'gameState'
         lastUpdate: Date.now(),
         isInitializing: false,
         scenarios: backendState.scenarios || state.scenarios
