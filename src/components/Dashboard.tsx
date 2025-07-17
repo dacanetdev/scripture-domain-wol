@@ -313,119 +313,114 @@ const Dashboard: React.FC = () => {
         </div>
       )}
       <div className="w-full max-w-5xl mx-auto z-10">
-        {/* Current Round Details - Only show when round is active */}
-        {hasRounds && scenarioObj && (
-          <>
-            <div className="mb-4 sm:mb-8 text-center">
-              <h1 className="text-3xl sm:text-5xl font-extrabold text-light-gold mb-1 sm:mb-2 tracking-wide drop-shadow flex items-center justify-center gap-2 animate-victory">
-                <SparklesIcon className="w-8 h-8 text-yellow-300 animate-glow" />
-                Ronda {currentRound}
-              </h1>
-              <h2 className="text-lg sm:text-3xl text-white mb-2 sm:mb-4 font-bold drop-shadow animate-fade-in">
-                {gameState === 'round' ? '¡Ronda en curso! ⚡' : 'Esperando que el administrador inicie la ronda...'}
-              </h2>
-              {gameState === 'round' && (
-                <div className="text-lg sm:text-2xl font-bold text-white bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl px-4 py-3 shadow-xl border-4 border-light-gold drop-shadow animate-glow mb-2 sm:mb-4 scenario-text">
-                  {scenarioObj.apply}
-                </div>
-              )}
+        {/* Current Round Details - Show even if no rounds yet */}
+        <div className="mb-4 sm:mb-8 text-center">
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-light-gold mb-1 sm:mb-2 tracking-wide drop-shadow flex items-center justify-center gap-2 animate-victory">
+            <SparklesIcon className="w-8 h-8 text-yellow-300 animate-glow" />
+            {hasRounds ? `Ronda ${currentRound}` : 'Esperando Primera Ronda'}
+          </h1>
+          <h2 className="text-lg sm:text-3xl text-white mb-2 sm:mb-4 font-bold drop-shadow animate-fade-in">
+            {gameState === 'round' ? '¡Ronda en curso! ⚡' : 'Esperando que el administrador inicie la ronda...'}
+          </h2>
+          {gameState === 'round' && scenarioObj && (
+            <div className="text-lg sm:text-2xl font-bold text-white bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl px-4 py-3 shadow-xl border-4 border-light-gold drop-shadow animate-glow mb-2 sm:mb-4 scenario-text">
+              {scenarioObj.apply}
             </div>
-            {/* Large Timer */}
-            {gameState === 'round' && (
-              <div className="flex flex-col items-center mb-6 sm:mb-10">
-                <div className="text-4xl sm:text-7xl font-extrabold text-light-gold bg-white px-6 py-3 sm:px-16 sm:py-6 rounded-3xl shadow-xl border-4 border-light-gold tracking-widest mb-1 sm:mb-2 drop-shadow animate-glow">
-                  {formatTime(roundTimer)}
-                </div>
-                <div className="text-lg sm:text-2xl text-white font-bold drop-shadow animate-fade-in">⏰ Tiempo restante</div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Current Round Answers - Always show if at least one round exists */}
-        {hasRounds && (
-          <div className="mb-6 sm:mb-10">
-            <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
-              <BookOpenIcon className="w-6 h-6 text-celestial-blue animate-bounce" />
-              Respuestas de la Ronda
-            </h3>
-            <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
-              <table className="w-full min-w-[500px] text-base sm:text-2xl">
-                <thead>
-                  <tr className="bg-light-gold text-dark-purple">
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Orden</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Equipo</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Jugador</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Hora</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentRoundResponses.length > 0 ? (
-                    currentRoundResponses.map((r, idx) => {
-                      const team = teams.find(t => t.id === r.teamId);
-                      // Always use playerName from response
-                      const playerName = r.playerName || '\u2014';
-                      return (
-                        <tr key={r.teamId + '-' + idx} className="text-dark-purple text-base sm:text-2xl border-b border-gray-200">
-                          <td className="py-1 sm:py-2 px-2 sm:px-4 text-center font-bold">{idx + 1}</td>
-                          <td className="py-1 sm:py-2 px-2 sm:px-4 text-center">{team ? team.name : r.teamId} <span className="ml-1">{team?.emoji}</span></td>
-                          <td className="py-1 sm:py-2 px-2 sm:px-4">{playerName}</td>
-                          <td className="py-1 sm:py-2 px-2 sm:px-4 text-center font-mono">{new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="text-center text-gray-400 py-2 sm:py-4">Sin respuestas aún.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          )}
+        </div>
+        
+        {/* Large Timer - Show even if no rounds yet */}
+        <div className="flex flex-col items-center mb-6 sm:mb-10">
+          <div className="text-4xl sm:text-7xl font-extrabold text-light-gold bg-white px-6 py-3 sm:px-16 sm:py-6 rounded-3xl shadow-xl border-4 border-light-gold tracking-widest mb-1 sm:mb-2 drop-shadow animate-glow">
+            {gameState === 'round' ? formatTime(roundTimer) : '--:--'}
           </div>
-        )}
-
-        {/* Round Points - Always show if at least one round exists */}
-        {hasRounds && (
-          <div className="mb-6 sm:mb-10">
-            <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
-              <ShieldCheckIcon className="w-6 h-6 text-green-600 animate-bounce-slow" />
-              Puntos de la Ronda
-            </h3>
-            <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
-              <table className="w-full min-w-[300px] text-base sm:text-2xl">
-                <thead>
-                  <tr className="bg-green-200 text-green-900">
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Equipo</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Puntos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teams
-                    .filter(team => team.id !== 'admin' && team.id !== 'viewer') // Filter out admin and viewer teams
-                    .map(team => {
-                      const score = currentRoundScores.find(s => s.teamId === team.id);
-                      return (
-                        <tr key={team.id} className="text-green-900 text-base sm:text-2xl border-b border-gray-200">
-                          <td className="py-1 sm:py-2 px-2 sm:px-4 text-center">{team.name} <span className="ml-1">{team.emoji}</span></td>
-                          <td className="py-1 sm:py-2 px-2 sm:px-4 text-center font-bold">{score ? score.totalScore : '-'}</td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
+          <div className="text-lg sm:text-2xl text-white font-bold drop-shadow animate-fade-in">
+            {gameState === 'round' ? '⏰ Tiempo restante' : '⏰ Timer'}
           </div>
-        )}
+        </div>
 
-        {/* Round History Table - Always show if at least one round exists */}
-        {hasRounds && (
-          <div className="mb-6 sm:mb-10">
-            <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
-              <BookOpenIcon className="w-6 h-6 text-celestial-blue animate-bounce" />
-              Historial de Rondas
-            </h3>
-            <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
+        {/* Current Round Answers - Always show */}
+        <div className="mb-6 sm:mb-10">
+          <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
+            <BookOpenIcon className="w-6 h-6 text-celestial-blue animate-bounce" />
+            Respuestas de la Ronda
+          </h3>
+          <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
+            <table className="w-full min-w-[500px] text-base sm:text-2xl">
+              <thead>
+                <tr className="bg-light-gold text-dark-purple">
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Orden</th>
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Equipo</th>
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Jugador</th>
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Hora</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentRoundResponses.length > 0 ? (
+                  currentRoundResponses.map((r, idx) => {
+                    const team = teams.find(t => t.id === r.teamId);
+                    // Always use playerName from response
+                    const playerName = r.playerName || '\u2014';
+                    return (
+                      <tr key={r.teamId + '-' + idx} className="text-dark-purple text-base sm:text-2xl border-b border-gray-200">
+                        <td className="py-1 sm:py-2 px-2 sm:px-4 text-center font-bold">{idx + 1}</td>
+                        <td className="py-1 sm:py-2 px-2 sm:px-4 text-center">{team ? team.name : r.teamId} <span className="ml-1">{team?.emoji}</span></td>
+                        <td className="py-1 sm:py-2 px-2 sm:px-4">{playerName}</td>
+                        <td className="py-1 sm:py-2 px-2 sm:px-4 text-center font-mono">{new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="text-center text-gray-400 py-2 sm:py-4">
+                      {hasRounds ? 'Sin respuestas aún.' : 'Las respuestas aparecerán aquí cuando comience la ronda.'}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Round Points - Always show */}
+        <div className="mb-6 sm:mb-10">
+          <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
+            <ShieldCheckIcon className="w-6 h-6 text-green-600 animate-bounce-slow" />
+            Puntos de la Ronda
+          </h3>
+          <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
+            <table className="w-full min-w-[300px] text-base sm:text-2xl">
+              <thead>
+                <tr className="bg-green-200 text-green-900">
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Equipo</th>
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Puntos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams
+                  .filter(team => team.id !== 'admin' && team.id !== 'viewer') // Filter out admin and viewer teams
+                  .map(team => {
+                    const score = currentRoundScores.find(s => s.teamId === team.id);
+                    return (
+                      <tr key={team.id} className="text-green-900 text-base sm:text-2xl border-b border-gray-200">
+                        <td className="py-1 sm:py-2 px-2 sm:px-4 text-center">{team.name} <span className="ml-1">{team.emoji}</span></td>
+                        <td className="py-1 sm:py-2 px-2 sm:px-4 text-center font-bold">{score ? score.totalScore : '-'}</td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Round History Table - Always show */}
+        <div className="mb-6 sm:mb-10">
+          <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
+            <BookOpenIcon className="w-6 h-6 text-celestial-blue animate-bounce" />
+            Historial de Rondas
+          </h3>
+          <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
+            {hasRounds ? (
               <table className="w-full min-w-[300px] text-xs sm:text-lg">
                 <thead>
                   <tr>
@@ -455,37 +450,49 @@ const Dashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                <div className="text-4xl mb-2">📊</div>
+                <div className="text-lg">El historial de rondas aparecerá aquí cuando comience el juego.</div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Overall Results - Always show if at least one round exists */}
-        {hasRounds && (
-          <div className="mb-6 sm:mb-10">
-            <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
-              <SparklesIcon className="w-6 h-6 text-yellow-300 animate-glow" />
-              Resultados Generales
-            </h3>
-            <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
-              <table className="w-full min-w-[300px] text-base sm:text-2xl">
-                <thead>
-                  <tr className="bg-blue-200 text-blue-900">
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Equipo</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4">Puntos Totales</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teamScores.map((team, idx) => (
+        {/* Overall Results - Always show */}
+        <div className="mb-6 sm:mb-10">
+          <h3 className="text-xl sm:text-3xl text-white font-bold mb-2 sm:mb-4 drop-shadow flex items-center gap-2 animate-fade-in">
+            <SparklesIcon className="w-6 h-6 text-yellow-300 animate-glow" />
+            Resultados Generales
+          </h3>
+          <div className="card bg-white rounded-xl shadow-lg p-2 sm:p-6 overflow-x-auto animate-fade-in">
+            <table className="w-full min-w-[300px] text-base sm:text-2xl">
+              <thead>
+                <tr className="bg-blue-200 text-blue-900">
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Equipo</th>
+                  <th className="py-2 sm:py-3 px-2 sm:px-4">Puntos Totales</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamScores.length > 0 ? (
+                  teamScores.map((team, idx) => (
                     <tr key={team.id} className="text-blue-900 text-base sm:text-2xl border-b border-gray-200">
                       <td className="py-1 sm:py-2 px-2 sm:px-4 text-center">{team.name} <span className="ml-1">{team.emoji}</span></td>
                       <td className="py-1 sm:py-2 px-2 sm:px-4 text-center font-bold">{team.totalScore}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} className="text-center text-gray-400 py-8">
+                      <div className="text-4xl mb-2">🏆</div>
+                      <div className="text-lg">Los resultados generales aparecerán aquí cuando se completen las rondas.</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
       </div>
 
       {/* End Game Confirmation Modal */}
