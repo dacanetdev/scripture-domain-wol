@@ -129,7 +129,6 @@ const GameBoard: React.FC = () => {
 
   // Show loading spinner if player is in storage but not yet joined
   const playerInStorage = playerStorage.get();
-  const isPlayerJoined = !!teams.find((t: any) => t.players.includes(currentPlayer?.name));
   if (!currentPlayer && playerInStorage) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green">
