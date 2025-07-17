@@ -531,24 +531,38 @@ const AdminPanel: React.FC = () => {
         {/* Admin Actions */}
         <div className="card p-6 mb-6">
           <h3 className="text-xl font-bold text-dark-purple mb-4">⚡ Acciones de Administrador</h3>
-          <button
-            onClick={() => {
-              if (!roundIsOver && allResponsesScored && !confirmAdvance) {
-                setConfirmAdvance(true);
-              } else {
-                setConfirmAdvance(false);
-                nextRound();
-              }
-            }}
-            disabled={!canProceedToNextRound()}
-            className={`w-full mb-4 py-3 px-4 rounded-lg font-semibold transition-all ${
-              canProceedToNextRound()
-                ? 'btn-primary'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {getNextRoundButtonText()}
-          </button>
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => {
+                if (!roundIsOver && allResponsesScored && !confirmAdvance) {
+                  setConfirmAdvance(true);
+                } else {
+                  setConfirmAdvance(false);
+                  nextRound();
+                }
+              }}
+              disabled={!canProceedToNextRound()}
+              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
+                canProceedToNextRound()
+                  ? 'btn-primary'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {getNextRoundButtonText()}
+            </button>
+            {/* Confirm and advance button - show when all responses are scored but timer is still running */}
+            {allResponsesScored && !roundIsOver && (
+              <button
+                onClick={() => {
+                  setConfirmAdvance(false);
+                  nextRound();
+                }}
+                className="flex-1 py-3 px-4 rounded-lg font-semibold transition-all bg-yellow-500 hover:bg-yellow-600 text-dark-purple border-2 border-yellow-700"
+              >
+                ✅ Confirmar y avanzar ahora
+              </button>
+            )}
+          </div>
           {/* Finish Game Button */}
           <button
             onClick={() => setShowFinishModal(true)}
@@ -585,18 +599,7 @@ const AdminPanel: React.FC = () => {
               </div>
             </div>
           )}
-          {/* Inline confirmation button if all answers are scored but timer is still running */}
-          {allResponsesScored && !roundIsOver && confirmAdvance && (
-            <button
-              onClick={() => {
-                setConfirmAdvance(false);
-                nextRound();
-              }}
-              className="w-full mb-4 py-3 px-4 rounded-lg font-semibold transition-all bg-yellow-500 text-dark-purple border-2 border-yellow-700"
-            >
-              ✅ Confirmar y avanzar ahora (el tiempo no ha terminado)
-            </button>
-          )}
+
           {!canProceedToNextRound() && (
             <div className="text-sm text-gray-600 text-center">
               {teams.length === 0 
