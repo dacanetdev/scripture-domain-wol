@@ -66,7 +66,7 @@ const GameLobby: React.FC = () => {
         }
       }
     }
-  }, [gameState, navigate, currentPlayer]); // Removed dispatch from dependency array
+  }, [gameState, navigate, currentPlayer, gameCode]); // Removed dispatch from dependency array
 
   // Always redirect to the correct screen based on gameState
   useEffect(() => {
