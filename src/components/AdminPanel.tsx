@@ -77,7 +77,7 @@ const AdminPanel: React.FC = () => {
 
   // Connect to backend when game code is entered
   useEffect(() => {
-    if (joinCode.trim().length >= 3) {
+    if (joinCode.trim().length === 6) {
       const trimmedCode = joinCode.trim();
       
       // Prevent multiple connection attempts for the same code
@@ -162,7 +162,7 @@ const AdminPanel: React.FC = () => {
     }
     
     // If we're not connected and we have a join code, keep connecting
-    if (!isConnected && trimmedCode.length >= 3) {
+    if (!isConnected && trimmedCode.length === 6) {
       setIsConnecting(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -322,11 +322,11 @@ const AdminPanel: React.FC = () => {
                 type="text"
                 value={joinCode}
                 onChange={e => setJoinCode(e.target.value)}
-                placeholder="Código del Juego (mínimo 3 caracteres)"
+                placeholder="Código del Juego (6 dígitos)"
                 className={`w-full px-4 py-3 border rounded-lg mb-2 ${
                   isConnecting ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
                 }`}
-                maxLength={20}
+                maxLength={6}
               />
               {isConnecting && (
                 <div className="text-blue-600 text-sm mb-2">
@@ -339,10 +339,10 @@ const AdminPanel: React.FC = () => {
                   </div>
                 </div>
               )}
-              {!isConnecting && joinCode.trim().length >= 3 && !isConnected && (
+              {!isConnecting && joinCode.trim().length === 6 && !isConnected && (
                 <div className="text-red-600 text-sm mb-2">❌ Error de conexión. Verifica el código del juego.</div>
               )}
-              {!isConnecting && joinCode.trim().length >= 3 && isConnected && gameId && (
+              {!isConnecting && joinCode.trim().length === 6 && isConnected && gameId && (
                 <div className="text-green-600 text-sm mb-2">✅ Conectado al juego</div>
               )}
             </div>

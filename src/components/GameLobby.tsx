@@ -87,7 +87,7 @@ const GameLobby: React.FC = () => {
 
   // Connect to backend when game code is entered
   useEffect(() => {
-    if (joinCode.trim().length >= 3) {
+    if (joinCode.trim().length === 6) {
       // Connect to the game on backend using the game code as gameId
       const gameId = joinCode.trim();
       setIsConnecting(true);
@@ -107,7 +107,7 @@ const GameLobby: React.FC = () => {
   // Update connecting state and viewGameValid based on connection status
   useEffect(() => {
     const trimmedCode = joinCode.trim();
-    const isValidLength = trimmedCode.length >= 3;
+    const isValidLength = trimmedCode.length === 6;
     const isGameConnected = isConnected && !!gameId; // Check if we have a gameId (meaning we found and connected to a game)
     
     // Update connecting state
@@ -270,11 +270,11 @@ const GameLobby: React.FC = () => {
                 setJoinCode(e.target.value);
                 setJoinError('');
               }}
-              placeholder="Código del Juego (mínimo 3 caracteres)"
+              placeholder="Código del Juego (6 dígitos)"
               className={`w-full px-4 py-3 border rounded-lg mb-2 text-lg font-mono tracking-widest ${
                 isConnecting ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
               }`}
-              maxLength={20}
+              maxLength={6}
             />
             {isConnecting && (
               <div className="text-blue-600 text-sm mb-2 flex items-center gap-1">
@@ -284,10 +284,10 @@ const GameLobby: React.FC = () => {
                 </div>
               </div>
             )}
-            {!isConnecting && joinCode.trim().length >= 3 && !isConnected && (
+            {!isConnecting && joinCode.trim().length === 6 && !isConnected && (
               <div className="text-red-600 text-sm mb-2">❌ Error de conexión. Verifica el código del juego.</div>
             )}
-            {!isConnecting && joinCode.trim().length >= 3 && isConnected && gameCode?.toLowerCase() === joinCode.trim().toLowerCase() && (
+            {!isConnecting && joinCode.trim().length === 6 && isConnected && gameCode?.toLowerCase() === joinCode.trim().toLowerCase() && (
               <div className="text-green-600 text-sm mb-2">✅ Conectado al juego</div>
             )}
             {DEBUG_MODE && (
