@@ -40,7 +40,9 @@ const GameLobby: React.FC = () => {
     if (playerData) {
       setPlayerName(playerData.name || '');
       setSelectedTeam(playerData.teamId || null);
-      setJoinCode(playerData.gameId || '');
+      // Extract the last 6 digits from gameId to get the game code
+      const gameCode = playerData.gameId ? playerData.gameId.slice(-6) : '';
+      setJoinCode(gameCode);
       setNewTeamEmoji(playerData.emoji || '');
     }
   }, []);
