@@ -82,9 +82,12 @@ const gameReducer = (state: GameStateType, action: GameAction): GameStateType =>
       }
       const playerInStorage = playerStorage.get();
       const incomingTeams = backendState.teams || [];
+      // Only ignore empty states if we're still in lobby state
+      // Allow valid transitions like 'playing' even if teams are empty
       if (
         (incomingTeams.length === 0 || !incomingGameId) &&
-        (playerInStorage || state.currentPlayer)
+        (playerInStorage || state.currentPlayer) &&
+        (!backendState.state || backendState.state === 'lobby')
       ) {
         console.warn('Ignoring empty or null gameState from backend during reconnect');
         return {
