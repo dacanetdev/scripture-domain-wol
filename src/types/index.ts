@@ -1,3 +1,5 @@
+import React from 'react';
+
 export interface Scripture {
   id: number;
   reference: string;
@@ -82,8 +84,10 @@ export interface GameContextType {
   setTeamRoundScore: (teamId: string, roundNumber: number, speedScore: number, qualityScore: number) => void;
   clearRoundScores: (roundNumber: number) => void;
   calculateRoundResults: () => void;
+  endGame: () => void;
   nextRound: () => void;
   setAdmin: (isAdmin: boolean) => void;
   scriptures: Scripture[];
   scenarios: string[];
+  dispatch: React.Dispatch<any>; // Add this line for context actions
 } 

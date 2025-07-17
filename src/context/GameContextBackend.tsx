@@ -3,6 +3,7 @@ import { scenarios as scenarioList, scriptures } from '../data/scriptures';
 import { GameContextType, GameState, Team, Response, RoundResult, GameResults, TeamRoundScore } from '../types';
 import { api, getSocket, isSocketConnected } from '../services/api';
 import { adminStorage } from '../utils/storage';
+import { playerStorage } from '../utils/storage';
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -67,37 +68,39 @@ type GameAction =
 
 const gameReducer = (state: GameStateType, action: GameAction): GameStateType => {
   switch (action.type) {
-    case 'SET_GAME_STATE':
-      // Map backend response to frontend state structure
+    case 'SET_GAME_STATE': {
       const backendState = action.payload;
-      console.log('SET_GAME_STATE reducer called with payload:', backendState);
-      console.log('Current state before update:', {
-        gameId: state.gameId,
-        gameCode: state.gameCode,
-        isInitializing: state.isInitializing,
-        isConnected: state.isConnected
-      });
-      
+      const incomingGameId = backendState.id || backendState.gameId;
+      const incomingGameCode = backendState.gameCode;
+      // Only accept state for the current game
+      if (
+        (state.gameId && incomingGameId && incomingGameId !== state.gameId) ||
+        (state.gameCode && incomingGameCode && incomingGameCode !== state.gameCode)
+      ) {
+        console.warn('Ignoring gameState for wrong game:', { incomingGameId, stateGameId: state.gameId, incomingGameCode, stateGameCode: state.gameCode });
+        return state;
+      }
+      const playerInStorage = playerStorage.get();
+      const incomingTeams = backendState.teams || [];
+      if (
+        (incomingTeams.length === 0 || !incomingGameId) &&
+        (playerInStorage || state.currentPlayer)
+      ) {
+        console.warn('Ignoring empty or null gameState from backend during reconnect');
+        return {
+          ...state,
+          isInitializing: false,
+        };
+      }
+      // Existing logic for updating state:
       const newState = {
         ...state,
+        ...backendState,
         gameId: backendState.id || backendState.gameId || state.gameId,
-        gameCode: backendState.gameCode || state.gameCode, // Update gameCode
-        gameState: (backendState.state || backendState.gameState || state.gameState) as GameState,
-        currentRound: backendState.currentRound ?? state.currentRound,
-        teams: backendState.teams || state.teams,
-        responses: backendState.responses || state.responses,
-        scores: backendState.scores || state.scores,
-        currentScenario: backendState.currentScenario || state.currentScenario,
-        roundTimer: backendState.roundTimer ?? state.roundTimer,
-        lastTimerUpdate: backendState.lastTimerUpdate ?? state.lastTimerUpdate,
-        roundResults: backendState.roundResults || state.roundResults,
-        teamRoundScores: backendState.teamRoundScores || state.teamRoundScores,
-        gameResults: backendState.gameResults || state.gameResults,
-        playerSelections: backendState.playerSelections || state.playerSelections,
+        gameCode: backendState.gameCode || state.gameCode,
         lastUpdate: Date.now(),
-        // Mark as initialized when we receive the first game state
         isInitializing: false,
-        scenarios: backendState.scenarios || state.scenarios // Update scenarios
+        scenarios: backendState.scenarios || state.scenarios
       };
       console.log('State updated in reducer:', {
         oldState: state.gameState,
@@ -112,7 +115,8 @@ const gameReducer = (state: GameStateType, action: GameAction): GameStateType =>
         isInitializing: newState.isInitializing
       });
       return newState;
-    
+    }
+
     case 'SET_CONNECTION':
       return {
         ...state,
@@ -163,6 +167,38 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const connectionAttemptRef = React.useRef<string | null>(null);
   const connectionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Always restore currentPlayer from storage on mount or when currentPlayer is null
+  React.useEffect(() => {
+    const playerData = playerStorage.get();
+    if (playerData && !state.currentPlayer) {
+      dispatch({ type: 'SET_CURRENT_PLAYER', payload: playerData });
+    }
+  }, [state.currentPlayer]);
+
+  // Auto-rejoin team if currentPlayer is set but not present in teams array
+  React.useEffect(() => {
+    const playerData = playerStorage.get();
+    if (
+      playerData &&
+      state.currentPlayer &&
+      state.teams.length > 0 &&
+      !state.teams.some(
+        (team) =>
+          team.id === playerData.teamId &&
+          team.players.includes(playerData.name)
+      )
+    ) {
+      const socket = getSocket();
+      socket.emit('joinGame', {
+        gameId: playerData.gameId,
+        playerName: playerData.name,
+        teamId: playerData.teamId,
+        emoji: playerData.emoji || '❓',
+        isAdmin: false,
+      });
+    }
+  }, [state.currentPlayer, state.teams]);
+
   // Socket.IO connection and event handling
   useEffect(() => {
     const socket = getSocket();
@@ -172,10 +208,31 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       console.log('Socket connected with ID:', socket.id);
       console.log('Socket transport:', socket.io.engine.transport.name);
       dispatch({ type: 'SET_CONNECTION', payload: true });
+      
+      // If we have a gameId but were disconnected, try to reconnect to the game
+      if (stateRef.current.gameId && !stateRef.current.isInitializing) {
+        console.log('Reconnecting to game after socket reconnection:', stateRef.current.gameId);
+        api.socket.requestGameState(stateRef.current.gameId);
+      }
     });
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      dispatch({ type: 'SET_CONNECTION', payload: false });
+      
+      // If this was an unexpected disconnect, try to reconnect
+      if (reason === 'io server disconnect' || reason === 'transport close') {
+        console.log('Unexpected disconnect, attempting to reconnect...');
+        setTimeout(() => {
+          if (!isSocketConnected()) {
+            socket.connect();
+          }
+        }, 1000);
+      }
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
       dispatch({ type: 'SET_CONNECTION', payload: false });
     });
 
@@ -193,6 +250,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         if (!isSocketConnected()) {
           console.log('Reconnecting after page visibility change');
           socket.connect();
+        } else if (stateRef.current.gameId) {
+          // Request fresh game state when page becomes visible
+          console.log('Requesting fresh game state after page visibility change');
+          api.socket.requestGameState(stateRef.current.gameId);
         }
       }
     };
@@ -204,6 +265,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const handleGameState = (gameState: any) => {
       console.log('Received game state update:', { 
         id: gameState.id, 
+        gameCode: gameState.gameCode,
         state: gameState.state, 
         currentRound: gameState.currentRound,
         teams: gameState.teams?.length || 0,
@@ -211,7 +273,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         roundTimer: gameState.roundTimer,
         timestamp: new Date().toISOString()
       });
-      console.log('Full game state received:', gameState);
+      
+      // Validate game state before processing
+      if (!gameState || !gameState.id) {
+        console.warn('Received invalid game state:', gameState);
+        return;
+      }
       
       // Check if this is a response to our requestGameState call
       if (stateRef.current.isInitializing) {
@@ -276,12 +343,26 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     
     socket.on('playerJoined', handlePlayerJoined);
 
+    // Error handling
+    socket.on('error', (error) => {
+      console.error('Socket error received:', error);
+      // Don't set connection to false for errors, just log them
+    });
+
+    // Response rejection handling
+    socket.on('responseRejected', (data) => {
+      console.warn('Response rejected:', data);
+      // Could dispatch an action to show error message to user
+    });
+
     // Cleanup function - single return statement
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       // Remove socket listeners properly
       socket.off('gameState', handleGameState);
       socket.off('playerJoined', handlePlayerJoined);
+      socket.off('error');
+      socket.off('responseRejected');
       // Clear connection refs
       connectionAttemptRef.current = null;
       if (connectionTimeoutRef.current) {
@@ -554,6 +635,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   };
 
+  const endGame = () => {
+    if (state.gameId) {
+      api.socket.endGame(state.gameId);
+    }
+  };
+
   const nextRound = () => {
     if (state.gameId) {
       api.socket.nextRound(state.gameId);
@@ -566,6 +653,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   const value: GameContextType = {
     ...state,
+    dispatch,
     startGame,
     startRound,
     connectToGame,
@@ -579,6 +667,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     setTeamRoundScore,
     clearRoundScores,
     calculateRoundResults,
+    endGame,
     nextRound,
     setAdmin,
     scriptures,

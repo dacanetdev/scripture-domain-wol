@@ -6,6 +6,7 @@ import { adminStorage } from '../utils/storage';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { formatTime } from '../utils/formatTime';
+import QRCodeDisplay from './QRCodeDisplay';
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -291,6 +292,14 @@ const AdminPanel: React.FC = () => {
             </p>
           </div>
         )}
+        
+        {/* QR Code Display - Show when game is active */}
+        {gameId && gameCode && (
+          <div className="mb-4">
+            <QRCodeDisplay gameCode={gameCode} gameId={gameId} />
+          </div>
+        )}
+        
         {/* Remove timer display from admin panel */}
         {/* Keep scenario, responses, and controls only */}
         {/* Header */}

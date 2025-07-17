@@ -290,72 +290,84 @@ io.on('connection', (socket) => {
   socket.on('joinGame', ({ gameId, playerName, teamId, emoji, isAdmin }) => {
     console.log('Player joining game:', { gameId, playerName, teamId, emoji, isAdmin });
     
-    // Get or create game first to determine the actual game ID
-    let game = getGame(gameId);
-    let actualGameId = gameId;
-    
-    if (!game) {
-      game = createGame(gameId);
-    } else {
-      // If game was found by gameCode, use the full game ID
-      actualGameId = game.id;
-    }
-    
-    // Join the room using the actual game ID
-    socket.join(actualGameId);
-    
-    // Store player info with the actual game ID
-    players.set(socket.id, { gameId: actualGameId, playerName, teamId, emoji, isAdmin });
-
-    // Add team if it doesn't exist (but not for admin or viewer)
-    if (teamId && !isAdmin && teamId !== 'viewer' && !game.teams.find(t => t.id === teamId)) {
-      game.teams.push({
-        id: teamId,
-        name: teamId,
-        color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-        players: [playerName],
-        totalScore: 0,
-        emoji: emoji || '❓'
-      });
-      updateGame(actualGameId, { teams: game.teams });
-    } else if (teamId && !isAdmin && teamId !== 'viewer') {
-      // Add player to existing team (but not for admin or viewer)
-      const team = game.teams.find(t => t.id === teamId);
-      if (team && !team.players.includes(playerName)) {
-        team.players.push(playerName);
-        updateGame(actualGameId, { teams: game.teams });
+    try {
+      // Get or create game first to determine the actual game ID
+      let game = getGame(gameId);
+      let actualGameId = gameId;
+      
+      if (!game) {
+        game = createGame(gameId);
+      } else {
+        // If game was found by gameCode, use the full game ID
+        actualGameId = game.id;
       }
-    }
+      
+      // Join the room using the actual game ID
+      socket.join(actualGameId);
+      
+      // Store player info with the actual game ID
+      players.set(socket.id, { gameId: actualGameId, playerName, teamId, emoji, isAdmin });
 
-    // Send current game state to the player
-    console.log('Sending game state to player:', game);
-    socket.emit('gameState', game);
-    
-    // Notify other players in the game
-    socket.to(actualGameId).emit('playerJoined', { playerName, teamId, emoji });
+      // Add team if it doesn't exist (but not for admin or viewer)
+      if (teamId && !isAdmin && teamId !== 'viewer' && !game.teams.find(t => t.id === teamId)) {
+        game.teams.push({
+          id: teamId,
+          name: teamId,
+          color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+          players: [playerName],
+          totalScore: 0,
+          emoji: emoji || '❓'
+        });
+        updateGame(actualGameId, { teams: game.teams });
+      } else if (teamId && !isAdmin && teamId !== 'viewer') {
+        // Add player to existing team (but not for admin or viewer)
+        const team = game.teams.find(t => t.id === teamId);
+        if (team && !team.players.includes(playerName)) {
+          team.players.push(playerName);
+          updateGame(actualGameId, { teams: game.teams });
+        }
+        // Always emit the latest game state to the socket, even if player is already present
+        socket.emit('gameState', getGame(actualGameId));
+      }
+
+      // Send current game state to the player
+      console.log('Sending game state to player:', game);
+      socket.emit('gameState', game);
+      
+      // Notify other players in the game
+      socket.to(actualGameId).emit('playerJoined', { playerName, teamId, emoji });
+    } catch (error) {
+      console.error('Error in joinGame:', error);
+      socket.emit('error', { message: 'Failed to join game' });
+    }
   });
 
   // Request current game state (for new tabs/sessions)
   socket.on('requestGameState', ({ gameId }) => {
     console.log('Requesting game state for:', gameId);
-    const game = getGame(gameId);
-    if (game) {
-      console.log('Sending current game state:', { 
-        id: game.id,
-        gameCode: game.gameCode,
-        state: game.state, 
-        currentRound: game.currentRound, 
-        currentScenario: game.currentScenario ? 'Set' : 'Not set',
-        teamsCount: game.teams?.length || 0,
-        responsesCount: game.responses?.length || 0
-      });
-      console.log('Full game state being sent:', game);
-      socket.emit('gameState', game);
-    } else {
-      console.log('Game not found for state request:', gameId);
-      const newGame = createGame(gameId);
-      console.log('Created new game for state request:', newGame);
-      socket.emit('gameState', newGame);
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        console.log('Sending current game state:', { 
+          id: game.id,
+          gameCode: game.gameCode,
+          state: game.state, 
+          currentRound: game.currentRound, 
+          currentScenario: game.currentScenario ? 'Set' : 'Not set',
+          teamsCount: game.teams?.length || 0,
+          responsesCount: game.responses?.length || 0
+        });
+        console.log('Full game state being sent:', game);
+        socket.emit('gameState', game);
+      } else {
+        console.log('Game not found for state request:', gameId);
+        const newGame = createGame(gameId);
+        console.log('Created new game for state request:', newGame);
+        socket.emit('gameState', newGame);
+      }
+    } catch (error) {
+      console.error('Error in requestGameState:', error);
+      socket.emit('error', { message: 'Failed to get game state' });
     }
   });
 
@@ -363,180 +375,235 @@ io.on('connection', (socket) => {
   socket.on('startGame', ({ gameId }) => {
     console.log('startGame event received:', { gameId });
     console.log('Available games before startGame:', Array.from(games.keys()));
-    const game = getGame(gameId);
-    if (game) {
-      console.log('Starting game:', { currentState: game.state, currentRound: game.currentRound });
-      const updatedGame = updateGame(gameId, {
-        state: 'playing',
-        currentRound: 1,
-        currentScenario: game.shuffledScenarios[0], // Use the first scenario from the shuffled array
-        roundTimer: 180,
-        lastTimerUpdate: Date.now()
-      });
-      console.log('Game started:', { newState: updatedGame.state, newRound: updatedGame.currentRound });
-      console.log('Available games after startGame:', Array.from(games.keys()));
-      console.log('Emitting gameState to room:', updatedGame.id);
-      io.to(updatedGame.id).emit('gameState', updatedGame);
-      console.log('gameState emitted successfully');
-    } else {
-      console.log('Game not found for startGame:', gameId);
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        console.log('Starting game:', { currentState: game.state, currentRound: game.currentRound });
+        const updatedGame = updateGame(gameId, {
+          state: 'playing',
+          currentRound: 1,
+          currentScenario: game.shuffledScenarios[0], // Use the first scenario from the shuffled array
+          roundTimer: 180,
+          lastTimerUpdate: Date.now()
+        });
+        console.log('Game started:', { newState: updatedGame.state, newRound: updatedGame.currentRound });
+        console.log('Available games after startGame:', Array.from(games.keys()));
+        console.log('Emitting gameState to room:', updatedGame.id);
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+        console.log('gameState emitted successfully');
+      } else {
+        console.log('Game not found for startGame:', gameId);
+        socket.emit('error', { message: 'Game not found' });
+      }
+    } catch (error) {
+      console.error('Error in startGame:', error);
+      socket.emit('error', { message: 'Failed to start game' });
     }
   });
 
   // Start round
   socket.on('startRound', ({ gameId }) => {
-    const game = getGame(gameId);
-    if (game) {
-      if (game.state === 'finished') return;
-      const currentScenario = game.shuffledScenarios[game.currentRound - 1];
-      if (!game.rounds) game.rounds = [];
-      if (currentScenario && !game.rounds.find(r => r.key === currentScenario.key)) {
-        game.rounds.push(currentScenario);
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        if (game.state === 'finished') return;
+        const currentScenario = game.shuffledScenarios[game.currentRound - 1];
+        if (!game.rounds) game.rounds = [];
+        if (currentScenario && !game.rounds.find(r => r.key === currentScenario.key)) {
+          game.rounds.push(currentScenario);
+        }
+        const updatedGame = updateGame(gameId, {
+          state: 'round',
+          roundTimer: 180,
+          lastTimerUpdate: Date.now(),
+          responses: [],
+          playerSelections: {}
+          // Keep the currentScenario as is - it should already be set for this round
+        });
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+        startGameTimer(gameId, 180);
+      } else {
+        socket.emit('error', { message: 'Game not found' });
       }
-      const updatedGame = updateGame(gameId, {
-        state: 'round',
-        roundTimer: 180,
-        lastTimerUpdate: Date.now(),
-        responses: [],
-        playerSelections: {}
-        // Keep the currentScenario as is - it should already be set for this round
-      });
-      io.to(updatedGame.id).emit('gameState', updatedGame);
-      startGameTimer(gameId, 180);
+    } catch (error) {
+      console.error('Error in startRound:', error);
+      socket.emit('error', { message: 'Failed to start round' });
     }
   });
 
   // Submit response
   socket.on('submitResponse', ({ gameId, teamId, playerId, scriptureId, response, playerName }) => {
-    const game = getGame(gameId);
-    if (game) {
-      if (game.state === 'finished') return;
-      if (game.roundTimer <= 0) {
-        socket.emit('responseRejected', { reason: 'Tiempo agotado. No se pueden enviar más respuestas.' });
-        return;
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        if (game.state === 'finished') return;
+        if (game.roundTimer <= 0) {
+          socket.emit('responseRejected', { reason: 'Tiempo agotado. No se pueden enviar más respuestas.' });
+          return;
+        }
+        const newResponse = {
+          teamId,
+          scriptureId,
+          response,
+          timestamp: Date.now(),
+          speedScore: 0,
+          qualityScore: 0,
+          playerName
+        };
+        const updatedResponses = [...game.responses, newResponse];
+        const updatedGame = updateGame(gameId, { responses: updatedResponses });
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+      } else {
+        socket.emit('error', { message: 'Game not found' });
       }
-      const newResponse = {
-        teamId,
-        scriptureId,
-        response,
-        timestamp: Date.now(),
-        speedScore: 0,
-        qualityScore: 0,
-        playerName
-      };
-      const updatedResponses = [...game.responses, newResponse];
-      const updatedGame = updateGame(gameId, { responses: updatedResponses });
-      io.to(updatedGame.id).emit('gameState', updatedGame);
+    } catch (error) {
+      console.error('Error in submitResponse:', error);
+      socket.emit('error', { message: 'Failed to submit response' });
     }
   });
 
   // Set team round score
   socket.on('setTeamRoundScore', ({ gameId, teamId, roundNumber, speedScore, qualityScore }) => {
-    const game = getGame(gameId);
-    if (game) {
-      const newScore = {
-        teamId,
-        roundNumber,
-        speedScore,
-        qualityScore,
-        totalScore: speedScore + qualityScore
-      };
-      
-      const existingIndex = game.teamRoundScores.findIndex(
-        s => s.teamId === teamId && s.roundNumber === roundNumber
-      );
-      
-      let updatedScores;
-      if (existingIndex >= 0) {
-        updatedScores = [...game.teamRoundScores];
-        updatedScores[existingIndex] = newScore;
-      } else {
-        updatedScores = [...game.teamRoundScores, newScore];
-      }
-      
-      // Update responses for this team and round with the scores
-      const updatedResponses = (game.responses || []).map(r => {
-        if (r.teamId === teamId && r.roundNumber === roundNumber) {
-          return { ...r, speedScore, qualityScore };
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        const newScore = {
+          teamId,
+          roundNumber,
+          speedScore,
+          qualityScore,
+          totalScore: speedScore + qualityScore
+        };
+        
+        const existingIndex = game.teamRoundScores.findIndex(
+          s => s.teamId === teamId && s.roundNumber === roundNumber
+        );
+        
+        let updatedScores;
+        if (existingIndex >= 0) {
+          updatedScores = [...game.teamRoundScores];
+          updatedScores[existingIndex] = newScore;
+        } else {
+          updatedScores = [...game.teamRoundScores, newScore];
         }
-        return r;
-      });
-      const updatedGame = updateGame(gameId, { teamRoundScores: updatedScores, responses: updatedResponses });
-      io.to(updatedGame.id).emit('gameState', updatedGame);
+        
+        // Update responses for this team and round with the scores
+        const updatedResponses = (game.responses || []).map(r => {
+          if (r.teamId === teamId && r.roundNumber === roundNumber) {
+            return { ...r, speedScore, qualityScore };
+          }
+          return r;
+        });
+        const updatedGame = updateGame(gameId, { teamRoundScores: updatedScores, responses: updatedResponses });
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+      } else {
+        socket.emit('error', { message: 'Game not found' });
+      }
+    } catch (error) {
+      console.error('Error in setTeamRoundScore:', error);
+      socket.emit('error', { message: 'Failed to set team score' });
     }
   });
 
   // Next round
   socket.on('nextRound', ({ gameId }) => {
-    const game = getGame(gameId);
-    if (game) {
-      if (game.state === 'finished') return;
-      // Stop any existing timer
-      stopGameTimer(gameId);
-      const nextRound = game.currentRound + 1;
-      // If all rounds are done, finish the game
-      if (nextRound > game.shuffledScenarios.length) {
-        const updatedGame = updateGame(gameId, { state: 'finished' });
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        if (game.state === 'finished') return;
+        // Stop any existing timer
+        stopGameTimer(gameId);
+        const nextRound = game.currentRound + 1;
+        // If all rounds are done, finish the game
+        if (nextRound > game.shuffledScenarios.length) {
+          const updatedGame = updateGame(gameId, { state: 'finished' });
+          io.to(updatedGame.id).emit('gameState', updatedGame);
+          return;
+        }
+        // Get the scenario for this round from the shuffled array
+        const scenarioIndex = nextRound - 1;
+        const nextScenario = game.shuffledScenarios[scenarioIndex] || 'No scenario available for this round';
+        const updatedGame = updateGame(gameId, {
+          currentRound: nextRound,
+          currentScenario: nextScenario,
+          state: 'playing',
+          responses: [],
+          playerSelections: {},
+          roundResults: [],
+          roundTimer: 180, // Reset timer for next round
+          lastTimerUpdate: Date.now()
+        });
         io.to(updatedGame.id).emit('gameState', updatedGame);
-        return;
+      } else {
+        socket.emit('error', { message: 'Game not found' });
       }
-      // Get the scenario for this round from the shuffled array
-      const scenarioIndex = nextRound - 1;
-      const nextScenario = game.shuffledScenarios[scenarioIndex] || 'No scenario available for this round';
-      const updatedGame = updateGame(gameId, {
-        currentRound: nextRound,
-        currentScenario: nextScenario,
-        state: 'playing',
-        responses: [],
-        playerSelections: {},
-        roundResults: [],
-        roundTimer: 180, // Reset timer for next round
-        lastTimerUpdate: Date.now()
-      });
-      io.to(updatedGame.id).emit('gameState', updatedGame);
+    } catch (error) {
+      console.error('Error in nextRound:', error);
+      socket.emit('error', { message: 'Failed to advance to next round' });
     }
   });
 
   // End game
   socket.on('endGame', ({ gameId }) => {
-    const game = getGame(gameId);
-    if (game) {
-      stopGameTimer(gameId);
-      // Calculate final results
-      const results = {};
-      for (const team of game.teams) {
-        // Sum all round scores for this team
-        const teamScores = (game.teamRoundScores || []).filter(s => s.teamId === team.id);
-        results[team.id] = teamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        stopGameTimer(gameId);
+        // Calculate final results
+        const results = {};
+        for (const team of game.teams) {
+          // Sum all round scores for this team
+          const teamScores = (game.teamRoundScores || []).filter(s => s.teamId === team.id);
+          results[team.id] = teamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
+        }
+        // Save results
+        const updatedGame = updateGame(gameId, { state: 'finished', gameResults: results });
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+      } else {
+        socket.emit('error', { message: 'Game not found' });
       }
-      // Save results
-      const updatedGame = updateGame(gameId, { state: 'finished', gameResults: results });
-      io.to(updatedGame.id).emit('gameState', updatedGame);
+    } catch (error) {
+      console.error('Error in endGame:', error);
+      socket.emit('error', { message: 'Failed to end game' });
     }
   });
 
   // Player selection update
   socket.on('updatePlayerSelection', ({ gameId, playerId, selectedScripture, teamResponse }) => {
-    const game = getGame(gameId);
-    if (game) {
-      const updatedSelections = {
-        ...game.playerSelections,
-        [playerId]: { selectedScripture, teamResponse }
-      };
-      const updatedGame = updateGame(gameId, { playerSelections: updatedSelections });
-      io.to(updatedGame.id).emit('gameState', updatedGame);
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        const updatedSelections = {
+          ...game.playerSelections,
+          [playerId]: { selectedScripture, teamResponse }
+        };
+        const updatedGame = updateGame(gameId, { playerSelections: updatedSelections });
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+      } else {
+        socket.emit('error', { message: 'Game not found' });
+      }
+    } catch (error) {
+      console.error('Error in updatePlayerSelection:', error);
+      socket.emit('error', { message: 'Failed to update player selection' });
     }
   });
 
   // Timer update
   socket.on('updateTimer', ({ gameId, timer }) => {
-    const game = getGame(gameId);
-    if (game) {
-      const updatedGame = updateGame(gameId, {
-        roundTimer: timer,
-        lastTimerUpdate: Date.now()
-      });
-      io.to(updatedGame.id).emit('gameState', updatedGame);
+    try {
+      const game = getGame(gameId);
+      if (game) {
+        const updatedGame = updateGame(gameId, {
+          roundTimer: timer,
+          lastTimerUpdate: Date.now()
+        });
+        io.to(updatedGame.id).emit('gameState', updatedGame);
+      } else {
+        socket.emit('error', { message: 'Game not found' });
+      }
+    } catch (error) {
+      console.error('Error in updateTimer:', error);
+      socket.emit('error', { message: 'Failed to update timer' });
     }
   });
 

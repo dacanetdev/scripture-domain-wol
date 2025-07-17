@@ -12,9 +12,9 @@ export const STORAGE_KEYS = {
 export const playerStorage = {
   get: () => {
     const saved = sessionStorage.getItem(STORAGE_KEYS.PLAYER);
-    return saved ? JSON.parse(saved) : null;
+    return saved ? JSON.parse(saved) as { name: string; teamId: string; gameId?: string; emoji?: string } : null;
   },
-  set: (playerData: { name: string; teamId: string; gameId?: string }) => {
+  set: (playerData: { name: string; teamId: string; gameId?: string; emoji?: string }) => {
     sessionStorage.setItem(STORAGE_KEYS.PLAYER, JSON.stringify(playerData));
   },
   clear: () => {

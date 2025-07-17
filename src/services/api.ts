@@ -160,6 +160,12 @@ export const getSocket = (): Socket => {
     socket.on('upgradeError', (error) => {
       console.warn('⚠️ Transport upgrade failed:', error);
     });
+
+    // Add error event handler
+    socket.on('error', (error) => {
+      console.error('❌ Socket error:', error);
+      updateConnectionStatus('error');
+    });
   }
   return socket;
 };

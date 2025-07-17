@@ -1,75 +1,105 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage, adminStorage } from '../utils/storage';
 import Header from './Header';
+import JoinGameModal from './ReconnectModal'; // renamed component
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const GameBoard: React.FC = () => {
-  const {
-    gameState,
-    currentRound,
-    teams,
-    currentScenario,
-    scriptures,
-    submitResponse,
-    responses,
-    roundTimer,
-    gameId,
-    gameCode,
-    setPlayerSelection,
-    playerSelections,
-    currentPlayer,
-    isInitializing
-  } = useGame();
+  const { gameState, currentRound, teams = [], currentScenario, scriptures, submitResponse, responses, roundTimer, gameId, gameCode, setPlayerSelection, playerSelections, currentPlayer, isInitializing, isConnected, dispatch } = useGame();
   const navigate = useNavigate();
-  const [player, setPlayer] = useState<{ name: string; teamId: string } | null>(null);
-  const [joinCode, setJoinCode] = useState('');
-  const [joinError, setJoinError] = useState('');
+  // Add missing state hooks
+  const [showReconnectModal, setShowReconnectModal] = React.useState(false);
+  const [isWaitingForJoin, setIsWaitingForJoin] = React.useState(false);
+  const [joinCode, setJoinCode] = React.useState('');
+  const [joinError, setJoinError] = React.useState('');
+  const [waitingTimeout, setWaitingTimeout] = React.useState<NodeJS.Timeout | null>(null);
 
-  // All hooks must be called before any conditional returns
-  useEffect(() => {
-    if (!currentPlayer) {
-      navigate('/lobby');
-      return;
+  // Robust waiting/loading state
+  React.useEffect(() => {
+    const playerInStorage = playerStorage.get();
+    const isPlayerJoined = !!teams.find((t: any) => t.players.includes(currentPlayer?.name));
+    if (!currentPlayer && playerInStorage) {
+      // Show loading spinner and set a timeout to navigate to lobby if not joined after 3s
+      if (!waitingTimeout) {
+        const timeout = setTimeout(() => {
+          // After 3s, if still not joined, navigate to lobby
+          if (!currentPlayer || !isPlayerJoined) {
+            navigate('/lobby');
+          }
+        }, 3000);
+        setWaitingTimeout(timeout);
+      }
+    } else if (currentPlayer && isPlayerJoined && waitingTimeout) {
+      // If player is joined, clear timeout
+      clearTimeout(waitingTimeout);
+      setWaitingTimeout(null);
     }
-    setPlayer(currentPlayer);
-  }, [currentPlayer, navigate]);
+    // Cleanup on unmount
+    return () => {
+      if (waitingTimeout) clearTimeout(waitingTimeout);
+    };
+  }, [currentPlayer, teams, navigate, waitingTimeout]);
 
   useEffect(() => {
     console.log('GameBoard teams:', teams);
     console.log('isPlayerJoined:', playerStorage.isJoined(teams, gameId));
-    console.log('player:', player);
-  }, [teams, player, gameId]);
+    console.log('currentPlayer:', currentPlayer);
+  }, [teams, currentPlayer, gameId]);
 
   useEffect(() => {
-    // Check if user is admin
-    const isAdmin = adminStorage.isAdmin();
-    const adminGameInfo = adminStorage.getGameInfo();
-    const isAdminInGame = isAdmin && adminGameInfo && adminGameInfo.gameId === gameId;
-    
-    // Only redirect if player is not joined or if game state changes to something other than lobby
+    // Debounce navigation to allow state to update after reconnection
+    const debounce = setTimeout(() => {
+      // Check if user is admin
+      const isAdmin = adminStorage.isAdmin();
+      const adminGameInfo = adminStorage.getGameInfo();
+      const isAdminInGame = isAdmin && adminGameInfo && adminGameInfo.gameId === gameId;
+      // Check if player is joined using multiple methods
+      const playerData = playerStorage.get();
+      const sessionGameId = gameSessionStorage.get();
+      const isPlayerJoined = playerStorage.isJoined(teams, gameId);
+      const hasPlayerData = playerData && playerData.name && playerData.teamId;
+      const isConnectedToGame = isConnected && !!gameId;
+      // User is considered joined if any of these conditions are met
+      const isUserJoined = isPlayerJoined || isAdminInGame || (hasPlayerData && isConnectedToGame);
+      if (isWaitingForJoin) {
+        // Show spinner while waiting for confirmation
+        if ((gameState === 'playing' || gameState === 'round') && isUserJoined) {
+          setIsWaitingForJoin(false);
+          navigate('/game');
+        }
+        // Don't navigate if not confirmed yet
+        return;
+      }
+      if (gameState === 'results' || gameState === 'finished') {
+        navigate('/results');
+      } else if ((gameState === 'playing' || gameState === 'round') && isUserJoined) {
+        navigate('/game');
+      } else if (gameState === 'lobby' && !isUserJoined) {
+        navigate('/lobby');
+      }
+      // If gameState is 'lobby' and user has joined (as player or admin), stay on /game
+    }, 200); // 200ms debounce
+    return () => clearTimeout(debounce);
+  }, [gameState, navigate, teams, gameId, isConnected, isWaitingForJoin]);
+
+  useEffect(() => {
     const isPlayerJoined = playerStorage.isJoined(teams, gameId);
-    const isUserJoined = isPlayerJoined || isAdminInGame;
-    
-    console.log('GameBoard navigation check:', {
-      gameState,
-      isPlayerJoined,
-      isAdmin,
-      isAdminInGame,
-      isUserJoined,
-      gameId,
-      adminGameInfo
-    });
-    
-    if (gameState === 'results' || gameState === 'finished') {
-      navigate('/results');
-    } else if (gameState === 'playing' || gameState === 'round') {
-      navigate('/game');
-    } else if (gameState === 'lobby' && !isUserJoined) {
-      navigate('/lobby');
+    if (isPlayerJoined && !currentPlayer) {
+      const playerData = playerStorage.get();
+      if (playerData) {
+        dispatch({ type: 'SET_CURRENT_PLAYER', payload: playerData });
+      }
     }
-    // If gameState is 'lobby' and user has joined (as player or admin), stay on /game
-  }, [gameState, navigate, teams, gameId]);
+  }, [teams, gameId, currentPlayer, dispatch]);
+
+  useEffect(() => {
+    const isPlayerJoined = playerStorage.isJoined(teams, gameId);
+    if (isPlayerJoined && currentPlayer) {
+      navigate('/game');
+    }
+  }, [teams, gameId, currentPlayer, navigate]);
 
   // Handle join by code (for future extensibility)
   const handleJoinByCode = () => {
@@ -79,12 +109,40 @@ const GameBoard: React.FC = () => {
       // For now, just reload player info from sessionStorage
       const playerInfo = playerStorage.get();
       if (playerInfo) {
-        setPlayer(playerInfo);
+        dispatch({ type: 'SET_CURRENT_PLAYER', payload: playerInfo });
       }
     } else {
       setJoinError('Código de juego incorrecto.');
     }
   };
+
+  // Handle reconnection
+  const handleReconnect = () => {
+    setShowReconnectModal(false);
+    setIsWaitingForJoin(true);
+    // Refresh player data from storage
+    const playerInfo = playerStorage.get();
+    if (playerInfo) {
+      dispatch({ type: 'SET_CURRENT_PLAYER', payload: playerInfo });
+    }
+    // Force a page reload to ensure fresh connection
+    window.location.reload();
+  };
+
+  // Show loading spinner if player is in storage but not yet joined
+  const playerInStorage = playerStorage.get();
+  const isPlayerJoined = !!teams.find((t: any) => t.players.includes(currentPlayer?.name));
+  if (!currentPlayer && playerInStorage) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green">
+        <div className="card p-8 max-w-md w-full text-center">
+          <div className="animate-spin text-4xl mb-4">⏳</div>
+          <div className="text-lg text-dark-purple font-bold mb-2">Re-sincronizando con el juego...</div>
+          <div className="text-gray-600">Por favor espera mientras se confirma tu conexión.</div>
+        </div>
+      </div>
+    );
+  }
 
   // After all hooks, do your conditional returns:
   if (isInitializing) {
@@ -99,7 +157,7 @@ const GameBoard: React.FC = () => {
     );
   }
 
-  if (!player) {
+  if (!currentPlayer) {
     const playerInfo = playerStorage.get();
     if (playerInfo) {
       // Player info exists but player state not set yet - show loading
@@ -138,15 +196,15 @@ const GameBoard: React.FC = () => {
     );
   }
 
-  const team = teams.find(t => t.id === player.teamId);
+  const team = teams.find(t => t.id === currentPlayer.teamId);
   if (!team) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green">
         <div className="card p-8 max-w-md w-full text-center">
           <div className="animate-spin text-4xl mb-4">⏳</div>
           <div className="text-lg text-dark-purple font-bold mb-2">Buscando equipo...</div>
-          <div className="text-gray-600">Equipo: {player.teamId}</div>
-          <div className="text-gray-600">Jugador: {player.name}</div>
+          <div className="text-gray-600">Equipo: {currentPlayer.teamId}</div>
+          <div className="text-gray-600">Jugador: {currentPlayer.name}</div>
         </div>
       </div>
     );
@@ -156,7 +214,7 @@ const GameBoard: React.FC = () => {
   const hasSubmitted = responses.some(r => r.teamId === team.id);
   
   // Get current player's selection
-  const playerId = `${player.name}-${team.id}`;
+  const playerId = `${currentPlayer.name}-${team.id}`;
   const playerSelection = playerSelections[playerId] || { selectedScripture: null, teamResponse: '' };
 
   // Remove splitScenario and scenarioCase
@@ -174,13 +232,22 @@ const GameBoard: React.FC = () => {
         {/* Welcome message for player - more visible and compact */}
         <div className="text-center mb-3 px-2">
           <div className="text-lg font-bold text-white drop-shadow">
-            Bienvenido(a) {player.name} - Equipo {team.name} {team.emoji}
+            Bienvenido(a) {currentPlayer.name} - Equipo {team.name} {team.emoji}
           </div>
         </div>
         {/* Game code always visible if in session */}
         {gameId && gameSessionStorage.get() === gameId && (
           <div className="card p-4 mb-4">
-            <p className="text-sm text-gray-600 mb-2">Código del Juego:</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-600">Código del Juego:</p>
+              <button
+                onClick={() => setShowReconnectModal(true)}
+                className="flex items-center gap-1 text-sm text-celestial-blue hover:text-blue-600 transition-colors"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+                Reconectar
+              </button>
+            </div>
             <p className="text-2xl font-mono font-bold text-dark-purple bg-light-gold rounded-lg p-2">
               {gameCode?.toUpperCase()}
             </p>
@@ -208,7 +275,7 @@ const GameBoard: React.FC = () => {
                     "{scenarioCase}"
                   </div>
                   <div className="text-lg text-gray-700 mb-2">Equipo: <span className="font-bold">{team.name}</span></div>
-                  <div className="text-lg text-gray-700 mb-2">Jugador: <span className="font-bold">{player.name}</span></div>
+                  <div className="text-lg text-gray-700 mb-2">Jugador: <span className="font-bold">{currentPlayer.name}</span></div>
                   <div className="text-lg text-gray-700 mb-2">Tiempo restante: <span className="font-bold">{Math.floor(roundTimer/60)}:{(roundTimer%60).toString().padStart(2,'0')}</span></div>
                 </div>
                 {/* Scripture selection and response form */}
@@ -270,6 +337,22 @@ const GameBoard: React.FC = () => {
           </>
         )}
       </div>
+      
+      {/* Reconnect Modal */}
+      <JoinGameModal
+        isOpen={showReconnectModal}
+        onClose={() => setShowReconnectModal(false)}
+        onJoin={handleReconnect}
+      />
+      {isWaitingForJoin && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 flex flex-col items-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-celestial-blue mb-4"></div>
+            <div className="text-lg font-bold text-dark-purple mb-2">Reconectando al juego...</div>
+            <div className="text-gray-600">Esperando confirmación del servidor...</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

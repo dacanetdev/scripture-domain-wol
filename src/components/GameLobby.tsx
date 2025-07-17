@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../context/GameContextBackend';
 import { playerStorage, gameSessionStorage } from '../utils/storage';
 import Header from './Header';
-import { BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, ShieldCheckIcon, UserGroupIcon, ArrowRightIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import AppLogo from './AppLogo';
+import JoinGameModal from './ReconnectModal'; // renamed component
 
 const DEBUG_MODE = process.env.REACT_APP_DEBUG_MODE === 'true';
 
 const TEAM_EMOJIS = ['☀️', '📖', '🙏', '🌟', '❤️', '✨', '⚡', '🦁', '🐉', '🦅'];
 
 const GameLobby: React.FC = () => {
-  const { teams, gameId, gameCode, isAdmin, gameState, joinTeam, connectToGame, isConnected, isInitializing } = useGame();
+  const { teams = [], gameId = '', gameCode, isAdmin, gameState, joinTeam, connectToGame, isConnected, isInitializing, currentPlayer } = useGame();
+  const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -19,7 +21,18 @@ const GameLobby: React.FC = () => {
   const [viewGameValid, setViewGameValid] = useState(false);
   const [newTeamEmoji, setNewTeamEmoji] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const navigate = useNavigate();
+  const [showReconnectModal, setShowReconnectModal] = useState(false);
+  const [isWaitingForJoin, setIsWaitingForJoin] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // Check for QR code URL parameter on mount
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code');
+    if (codeFromUrl) {
+      console.log('Found game code in URL:', codeFromUrl);
+      setJoinCode(codeFromUrl);
+    }
+  }, [searchParams]);
 
   // On mount, check if player is already joined and redirect if needed
   useEffect(() => {
@@ -27,6 +40,9 @@ const GameLobby: React.FC = () => {
     if (playerData) {
       setPlayerName(playerData.name);
       setSelectedTeam(playerData.teamId);
+      if (!currentPlayer) {
+        // dispatch({ type: 'SET_CURRENT_PLAYER', payload: playerData }); // This line was removed from useGame
+      }
       // Redirect based on game state
       if (gameState === 'playing' || gameState === 'round') {
         navigate('/game');
@@ -34,35 +50,39 @@ const GameLobby: React.FC = () => {
         navigate('/results');
       }
     }
-  }, [gameState, navigate]);
+  }, [gameState, navigate, currentPlayer]); // Removed dispatch from dependency array
 
   // Always redirect to the correct screen based on gameState
   useEffect(() => {
-    // Only redirect if player is already joined and not just after joining
-    const isPlayerJoined = playerStorage.isJoined(teams, gameId);
-    console.log('Navigation useEffect:', { 
-      isPlayerJoined, 
-      gameState, 
-      gameId, 
-      teams: teams.length,
-      playerData: playerStorage.get(),
-      sessionGameId: gameSessionStorage.get()
-    });
-    
-    if (isPlayerJoined) {
-      if (gameState === 'playing' || gameState === 'round') {
-        console.log('Redirecting to /game (playing/round)');
+    // Debounce navigation to allow state to update after reconnection
+    const debounce = setTimeout(() => {
+      const playerData = playerStorage.get();
+      const sessionGameId = gameSessionStorage.get();
+      const isPlayerJoined = playerStorage.isJoined(teams, gameId);
+      const hasPlayerData = playerData && playerData.name && playerData.teamId;
+      const isConnectedToGame = isConnected && !!gameId;
+      
+      // Only navigate if player is confirmed as joined in the latest teams list
+      if (isWaitingForJoin) {
+        // Show spinner while waiting for confirmation
+        if (isPlayerJoined && (gameState === 'playing' || gameState === 'round')) {
+          setIsWaitingForJoin(false);
+          navigate('/game');
+        }
+        // Don't navigate if not confirmed yet
+        return;
+      }
+      if (isPlayerJoined && (gameState === 'playing' || gameState === 'round')) {
         navigate('/game');
-      } else if (gameState === 'results') {
-        console.log('Redirecting to /results');
+      } else if (isPlayerJoined && gameState === 'results') {
         navigate('/results');
-      } else if (gameState === 'lobby') {
+      } else if (isPlayerJoined && gameState === 'lobby') {
         // If player has joined a team, go to game screen even in lobby state
-        console.log('Redirecting to /game (lobby state)');
         navigate('/game');
       }
-    }
-  }, [gameState, navigate, teams, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, 200); // 200ms debounce
+    return () => clearTimeout(debounce);
+  }, [gameState, navigate, teams, gameId, isConnected, isWaitingForJoin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debug logging
   useEffect(() => {
@@ -100,7 +120,21 @@ const GameLobby: React.FC = () => {
     }
     
     // Update viewGameValid - check if we have a gameId and the gameCode matches
-    setViewGameValid(isValidLength && !!gameId && gameCode === trimmedCode);
+    // Also allow if we have a gameId but gameCode is not set yet (for backward compatibility)
+    // Make comparison case-insensitive
+    const isValidGame = isValidLength && !!gameId && (gameCode?.toLowerCase() === trimmedCode.toLowerCase() || !gameCode);
+    setViewGameValid(isValidGame);
+    
+    if (DEBUG_MODE) {
+      console.log('GameLobby validation:', {
+        isValidLength,
+        gameId,
+        gameCode,
+        trimmedCode,
+        gameCodeMatches: gameCode === trimmedCode,
+        isValidGame
+      });
+    }
   }, [isConnected, gameId, gameCode, joinCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Real-time validation of game code
@@ -114,6 +148,10 @@ const GameLobby: React.FC = () => {
     }
     if (!gameId) {
       setJoinError('No se pudo conectar al juego. Verifica el código.');
+      return;
+    }
+    if (!isConnected) {
+      setJoinError('No hay conexión con el servidor. Intenta de nuevo.');
       return;
     }
     console.log('handleJoinTeam START:', { selectedTeam, playerName, newTeamEmoji, joinCode, gameId });
@@ -144,7 +182,38 @@ const GameLobby: React.FC = () => {
   const realTeams = teams.filter(team => team.id !== 'viewer' && team.id !== 'admin');
 
   // Only enable join if connected to the correct game
-  const canJoin = playerName.trim() && joinCode.trim() && selectedTeam && isConnected && gameCode === joinCode.trim();
+  // Allow joining if we have a gameId (meaning we found a game) even if gameCode doesn't match exactly
+  const canJoin = playerName.trim() && joinCode.trim() && selectedTeam && isConnected && !!gameId;
+
+  // Handle reconnection
+  const handleReconnect = () => {
+    setShowReconnectModal(false);
+    setIsWaitingForJoin(true);
+    // Force a page reload to ensure fresh connection
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    const isPlayerJoined = playerStorage.isJoined(teams, gameId);
+    if (isPlayerJoined && !currentPlayer) {
+      const playerData = playerStorage.get();
+      if (playerData) {
+        // dispatch({ type: 'SET_CURRENT_PLAYER', payload: playerData }); // This line was removed from useGame
+      }
+    }
+  }, [teams, gameId, currentPlayer]); // Removed dispatch from dependency array
+
+  // Navigation effect: only navigate to /game when all conditions are met
+  React.useEffect(() => {
+    const isPlayerJoined = !!teams.find((t: any) => t.players.includes(currentPlayer?.name));
+    if (
+      currentPlayer &&
+      isPlayerJoined &&
+      (gameState === 'playing' || gameState === 'round')
+    ) {
+      navigate('/game');
+    }
+  }, [currentPlayer, teams, gameState, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-purple via-celestial-blue to-terrestrial-green p-2 sm:p-4 relative overflow-x-hidden">
@@ -169,6 +238,28 @@ const GameLobby: React.FC = () => {
             >
               <ArrowRightIcon className="w-4 h-4" /> Conectar a otro juego
             </button>
+          </div>
+        )}
+
+        {/* Reconnection banner for users with stored data */}
+        {playerStorage.get() && (
+          <div className="card p-4 mb-4 bg-blue-50 border border-blue-200 rounded-xl animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ArrowPathIcon className="w-5 h-5 text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">Sesión anterior encontrada</p>
+                  <p className="text-xs text-blue-600">Puedes reconectar con tu información guardada</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowReconnectModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+                Reconectar
+              </button>
+            </div>
           </div>
         )}
 
@@ -207,8 +298,13 @@ const GameLobby: React.FC = () => {
             {!isConnecting && joinCode.trim().length >= 3 && !isConnected && (
               <div className="text-red-600 text-sm mb-2">❌ Error de conexión. Verifica el código del juego.</div>
             )}
-            {!isConnecting && joinCode.trim().length >= 3 && isConnected && gameCode === joinCode.trim() && (
+            {!isConnecting && joinCode.trim().length >= 3 && isConnected && gameCode?.toLowerCase() === joinCode.trim().toLowerCase() && (
               <div className="text-green-600 text-sm mb-2">✅ Conectado al juego</div>
+            )}
+            {DEBUG_MODE && (
+              <div className="text-xs text-gray-500 mt-1">
+                Debug: joinCode="{joinCode.trim()}", gameCode="{gameCode}", isConnected={isConnected ? 'true' : 'false'}, gameId="{gameId}", viewGameValid={viewGameValid ? 'true' : 'false'}, canJoin={canJoin ? 'true' : 'false'}
+              </div>
             )}
             {joinError && <div className="text-red-600 mb-2">{joinError}</div>}
             {/* Ver Juego button for projection */}
@@ -385,6 +481,22 @@ const GameLobby: React.FC = () => {
         {/* Team Status */}
         {/* Remove any static team list or 'Equipos de Batalla' section. Only keep the dynamic team selection/join UI as already implemented. */}
       </div>
+      
+      {/* Join Modal */}
+      <JoinGameModal
+        isOpen={showReconnectModal}
+        onClose={() => setShowReconnectModal(false)}
+        onJoin={() => setShowReconnectModal(false)}
+      />
+      {isWaitingForJoin && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 flex flex-col items-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-celestial-blue mb-4"></div>
+            <div className="text-lg font-bold text-dark-purple mb-2">Reconectando al juego...</div>
+            <div className="text-gray-600">Esperando confirmación del servidor...</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
