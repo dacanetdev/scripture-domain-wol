@@ -56,7 +56,6 @@ const GameLobby: React.FC = () => {
   useEffect(() => {
     // Debounce navigation to allow state to update after reconnection
     const debounce = setTimeout(() => {
-      const playerData = playerStorage.get();
       const isPlayerJoined = playerStorage.isJoined(teams, gameId);
       
       // Only navigate if player is confirmed as joined in the latest teams list
@@ -183,13 +182,6 @@ const GameLobby: React.FC = () => {
   const canJoin = playerName.trim() && joinCode.trim() && selectedTeam && isConnected && !!gameId;
 
   // Handle reconnection
-  const handleReconnect = () => {
-    setShowReconnectModal(false);
-    setIsWaitingForJoin(true);
-    // Force a page reload to ensure fresh connection
-    window.location.reload();
-  };
-
   useEffect(() => {
     const isPlayerJoined = playerStorage.isJoined(teams, gameId);
     if (isPlayerJoined && !currentPlayer) {
