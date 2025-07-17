@@ -377,6 +377,20 @@ const AdminPanel: React.FC = () => {
           </div>
         )}
 
+        {/* Debug Info - Always show current state */}
+        <div className="card p-4 mb-4 bg-gray-100">
+          <h3 className="text-sm font-bold text-gray-700 mb-2">🔍 Debug Info</h3>
+          <div className="text-xs text-gray-600 space-y-1">
+            <div>gameState: {gameState}</div>
+            <div>currentRound: {currentRound}</div>
+            <div>isAdmin: {isAdmin ? 'true' : 'false'}</div>
+            <div>gameId: {gameId}</div>
+            <div>gameCode: {gameCode}</div>
+            <div>isConnected: {isConnected ? 'true' : 'false'}</div>
+            <div>isInitializing: {isInitializing ? 'true' : 'false'}</div>
+          </div>
+        </div>
+
         {/* Start Game Option - Show when game hasn't started */}
         {gameState === 'lobby' && (
           <div className="card p-6 mb-6">
@@ -393,6 +407,12 @@ const AdminPanel: React.FC = () => {
           </div>
         )}
         {/* Start Round Option - Show when game is playing and round hasn't started yet */}
+        {gameState === 'playing' && isAdmin && (
+          // Debug info
+          <div className="text-xs text-gray-500 mb-2">
+            Debug: gameState={gameState}, currentRound={currentRound}, isAdmin={isAdmin ? 'true' : 'false'}
+          </div>
+        )}
         {gameState === 'playing' && isAdmin && (
           <div className="card p-6 mb-6">
             <h3 className="text-xl font-bold text-dark-purple mb-4">⚡ Iniciar Ronda</h3>
