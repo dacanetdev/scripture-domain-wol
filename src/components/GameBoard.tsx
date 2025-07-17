@@ -322,7 +322,6 @@ const GameBoard: React.FC = () => {
                                   <div className="text-light-gold text-xl">✓</div>
                                 )}
                               </div>
-                              
                               <p className="text-gray-700 text-sm leading-relaxed">
                                 "{scripture.text}"
                               </p>
