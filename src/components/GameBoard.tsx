@@ -323,21 +323,9 @@ const GameBoard: React.FC = () => {
                                 )}
                               </div>
                               
-                              <p className="text-gray-700 text-sm mb-2 leading-relaxed line-clamp-2">
+                              <p className="text-gray-700 text-sm leading-relaxed">
                                 "{scripture.text}"
                               </p>
-                              
-                              <div className="space-y-1">
-                                <div className="bg-blue-50 p-2 rounded text-xs">
-                                  <div className="font-semibold text-blue-700 mb-1">💡 Clave:</div>
-                                  <div className="text-blue-800 line-clamp-1">{scripture.key}</div>
-                                </div>
-                                
-                                <div className="bg-green-50 p-2 rounded text-xs">
-                                  <div className="font-semibold text-green-700 mb-1">🎯 Aplicar:</div>
-                                  <div className="text-green-800 line-clamp-1">{scripture.apply}</div>
-                                </div>
-                              </div>
                             </div>
                           </div>
                         </div>
