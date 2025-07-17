@@ -99,7 +99,7 @@ const GameLobby: React.FC = () => {
       }
     }, 200); // 200ms debounce
     return () => clearTimeout(debounce);
-  }, [gameState, navigate, teams, gameId, isConnected, isWaitingForJoin]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameState, navigate, teams, gameId, gameCode, isConnected, isWaitingForJoin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debug logging
   useEffect(() => {

@@ -85,7 +85,7 @@ const GameBoard: React.FC = () => {
       // If gameState is 'lobby' and user has joined (as player or admin), stay on /game
     }, 200); // 200ms debounce
     return () => clearTimeout(debounce);
-  }, [gameState, navigate, teams, gameId, isConnected, isWaitingForJoin]);
+  }, [gameState, navigate, teams, gameId, gameCode, isConnected, isWaitingForJoin]);
 
   useEffect(() => {
     const isPlayerJoined = playerStorage.isJoined(teams, gameId);
