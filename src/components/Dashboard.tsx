@@ -86,9 +86,14 @@ const Dashboard: React.FC = () => {
   // Navigate to results when game is finished
   useEffect(() => {
     if (gameState === 'finished') {
-      navigate('/results');
+      // Pass the game code as a parameter to ensure ResultsScreen can fetch the data
+      if (gameCode) {
+        navigate(`/results?code=${encodeURIComponent(gameCode)}`);
+      } else {
+        navigate('/results');
+      }
     }
-  }, [gameState, navigate]);
+  }, [gameState, navigate, gameCode]);
 
   // Handle end game button click
   const handleEndGame = () => {

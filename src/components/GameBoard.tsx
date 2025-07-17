@@ -71,7 +71,12 @@ const GameBoard: React.FC = () => {
         return;
       }
       if (gameState === 'results' || gameState === 'finished') {
-        navigate('/results');
+        // Pass the game code as a parameter to ensure ResultsScreen can fetch the data
+        if (gameCode) {
+          navigate(`/results?code=${encodeURIComponent(gameCode)}`);
+        } else {
+          navigate('/results');
+        }
       } else if ((gameState === 'playing' || gameState === 'round') && isUserJoined) {
         navigate('/game');
       } else if (gameState === 'lobby' && !isUserJoined) {

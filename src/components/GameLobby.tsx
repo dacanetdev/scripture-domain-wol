@@ -58,7 +58,12 @@ const GameLobby: React.FC = () => {
       if (gameState === 'playing' || gameState === 'round') {
         navigate('/game');
       } else if (gameState === 'results') {
-        navigate('/results');
+        // Pass the game code as a parameter to ensure ResultsScreen can fetch the data
+        if (gameCode) {
+          navigate(`/results?code=${encodeURIComponent(gameCode)}`);
+        } else {
+          navigate('/results');
+        }
       }
     }
   }, [gameState, navigate, currentPlayer]); // Removed dispatch from dependency array
@@ -82,7 +87,12 @@ const GameLobby: React.FC = () => {
       if (isPlayerJoined && (gameState === 'playing' || gameState === 'round')) {
         navigate('/game');
       } else if (isPlayerJoined && gameState === 'results') {
-        navigate('/results');
+        // Pass the game code as a parameter to ensure ResultsScreen can fetch the data
+        if (gameCode) {
+          navigate(`/results?code=${encodeURIComponent(gameCode)}`);
+        } else {
+          navigate('/results');
+        }
       } else if (isPlayerJoined && gameState === 'lobby') {
         // If player has joined a team, go to game screen even in lobby state
         navigate('/game');
