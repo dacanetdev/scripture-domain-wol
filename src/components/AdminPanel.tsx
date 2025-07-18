@@ -223,7 +223,7 @@ const AdminPanel: React.FC = () => {
   // Removed unused variables
 
   const handleStartGame = () => {
-    startGame(6);
+    startGame(8);
   };
 
   const handleRestartGame = () => {

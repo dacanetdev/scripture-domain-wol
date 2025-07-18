@@ -119,5 +119,7 @@ export const teamColors: string[] = [
   "from-green-500 to-teal-600",
   "from-pink-500 to-red-500",
   "from-indigo-500 to-blue-600",
-  "from-purple-500 to-pink-600"
+  "from-purple-500 to-pink-600",
+  "from-red-400 to-yellow-600",
+  "from-teal-400 to-green-700"
 ]; 
