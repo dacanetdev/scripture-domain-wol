@@ -83,6 +83,22 @@ const Dashboard: React.FC = () => {
     }
   }, [gameId]);
 
+  // Periodic refresh mechanism to keep Dashboard in sync
+  useEffect(() => {
+    if (!gameId || !isConnected) return;
+    
+    const refreshInterval = setInterval(() => {
+      console.log('Dashboard: Periodic refresh - requesting current game state');
+      // Request fresh game state from server
+      if (gameId) {
+        const { api } = require('../services/api');
+        api.socket.requestGameState({ gameId });
+      }
+    }, 5000); // Refresh every 5 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [gameId, isConnected]);
+
   // Navigate to results when game is finished
   useEffect(() => {
     if (gameState === 'finished') {
@@ -288,6 +304,19 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Connection Status Indicator */}
+      {gameId && (
+        <div className="w-full flex justify-center mb-2 z-10">
+          <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+            isConnected 
+              ? 'bg-green-100 text-green-800 border border-green-300' 
+              : 'bg-red-100 text-red-800 border border-red-300'
+          }`}>
+            {isConnected ? '🟢 Conectado' : '🔴 Desconectado'}
+          </div>
+        </div>
+      )}
+
       {/* Game Code Display - Very visible if available */}
       {gameId && (
         <div className="w-full flex justify-center mb-4 sm:mb-8 z-10">
@@ -297,13 +326,30 @@ const Dashboard: React.FC = () => {
                 <ShieldCheckIcon className="w-6 h-6 text-victory-gold animate-bounce-slow" />
                 Código del Juego
               </div>
-              <button
-                onClick={() => setShowReconnectModal(true)}
-                className="flex items-center gap-1 text-sm text-dark-purple hover:text-blue-600 transition-colors"
-              >
-                <ArrowPathIcon className="w-4 h-4" />
-                Reconectar
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    console.log('Dashboard: Manual refresh requested');
+                    if (gameId) {
+                      const { api } = require('../services/api');
+                      api.socket.requestGameState({ gameId });
+                    }
+                  }}
+                  className="flex items-center gap-1 text-sm text-dark-purple hover:text-green-600 transition-colors"
+                  title="Actualizar datos"
+                >
+                  <ArrowPathIcon className="w-4 h-4" />
+                  Actualizar
+                </button>
+                <button
+                  onClick={() => setShowReconnectModal(true)}
+                  className="flex items-center gap-1 text-sm text-dark-purple hover:text-blue-600 transition-colors"
+                  title="Reconectar al juego"
+                >
+                  <ArrowPathIcon className="w-4 h-4" />
+                  Reconectar
+                </button>
+              </div>
             </div>
             <div className="text-2xl sm:text-4xl font-mono font-extrabold text-dark-purple tracking-widest drop-shadow animate-pulse-slow">
               {gameCode?.toUpperCase()}
