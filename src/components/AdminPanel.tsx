@@ -222,11 +222,6 @@ const AdminPanel: React.FC = () => {
 
   // Removed unused variables
 
-  const handlePointsChange = (teamId: string, points: number) => {
-    // Update points immediately
-    setTeamRoundScore(teamId, currentRound, points, 0);
-  };
-
   const handleStartGame = () => {
     startGame(6);
   };
