@@ -499,13 +499,18 @@ const AdminPanel: React.FC = () => {
                           </label>
                           <div className="flex space-x-2">
                             {[0, 1, 2, 3].map(points => {
-                              const currentScore = (teamRoundScores || []).find(s => s.teamId === team.id && s.roundNumber === currentRound)?.totalScore || 0;
+                              // Find the current round score for this team
+                              const roundScore = (teamRoundScores || []).find(s => s.teamId === team.id && s.roundNumber === currentRound);
+                              const currentScore = roundScore?.totalScore || 0;
+                              const showedPhysically = !!roundScore?.showedPhysically;
+                              // The base points (without bonus)
+                              const basePoints = showedPhysically ? currentScore - 1 : currentScore;
                               return (
                                 <button
                                   key={points}
-                                  onClick={() => handlePointsChange(team.id, points)}
+                                  onClick={() => setTeamRoundScore(team.id, currentRound, points, 0, showedPhysically)}
                                   className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all ${
-                                    currentScore === points
+                                    basePoints === points && !showedPhysically
                                       ? 'border-light-gold bg-light-gold text-dark-purple'
                                       : 'border-gray-300 hover:border-light-gold'
                                   }`}
@@ -514,6 +519,28 @@ const AdminPanel: React.FC = () => {
                                 </button>
                               );
                             })}
+                            {/* Bonus button */}
+                            {(() => {
+                              const roundScore = (teamRoundScores || []).find(s => s.teamId === team.id && s.roundNumber === currentRound);
+                              const currentScore = roundScore?.totalScore || 0;
+                              const showedPhysically = !!roundScore?.showedPhysically;
+                              // The base points (without bonus)
+                              const basePoints = showedPhysically ? currentScore - 1 : currentScore;
+                              return (
+                                <button
+                                  key="bonus"
+                                  onClick={() => setTeamRoundScore(team.id, currentRound, basePoints, 0, !showedPhysically)}
+                                  className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all ${
+                                    showedPhysically
+                                      ? 'border-green-500 bg-green-100 text-green-800 font-bold'
+                                      : 'border-gray-300 hover:border-green-400'
+                                  }`}
+                                  title="Sumar 1 punto extra por mostrar la escritura físicamente"
+                                >
+                                  +📖
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

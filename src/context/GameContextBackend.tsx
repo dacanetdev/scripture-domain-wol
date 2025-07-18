@@ -616,14 +616,15 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     console.log('setQualityScore deprecated, use setTeamRoundScore instead');
   };
 
-  const setTeamRoundScore = (teamId: string, roundNumber: number, speedScore: number, qualityScore: number) => {
+  const setTeamRoundScore = (teamId: string, roundNumber: number, speedScore: number, qualityScore: number, showedPhysically?: boolean) => {
     if (state.gameId) {
       api.socket.setTeamRoundScore({
         gameId: state.gameId,
         teamId,
         roundNumber,
         speedScore,
-        qualityScore
+        qualityScore,
+        showedPhysically
       });
     }
   };

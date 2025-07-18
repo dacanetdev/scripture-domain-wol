@@ -261,7 +261,7 @@ export const api = {
       getSocket().emit('submitResponse', data);
     },
     
-    setTeamRoundScore: (data: { gameId: string; teamId: string; roundNumber: number; speedScore: number; qualityScore: number }) => {
+    setTeamRoundScore: (data: { gameId: string; teamId: string; roundNumber: number; speedScore: number; qualityScore: number; showedPhysically?: boolean }) => {
       getSocket().emit('setTeamRoundScore', data);
     },
     

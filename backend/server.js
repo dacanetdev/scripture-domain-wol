@@ -465,16 +465,19 @@ io.on('connection', (socket) => {
   });
 
   // Set team round score
-  socket.on('setTeamRoundScore', ({ gameId, teamId, roundNumber, speedScore, qualityScore }) => {
+  socket.on('setTeamRoundScore', ({ gameId, teamId, roundNumber, speedScore, qualityScore, showedPhysically }) => {
     try {
       const game = getGame(gameId);
       if (game) {
+        // Add 1 to totalScore if showedPhysically is true
+        const extra = showedPhysically ? 1 : 0;
         const newScore = {
           teamId,
           roundNumber,
           speedScore,
           qualityScore,
-          totalScore: speedScore + qualityScore
+          totalScore: speedScore + qualityScore + extra,
+          showedPhysically: !!showedPhysically
         };
         
         const existingIndex = game.teamRoundScores.findIndex(

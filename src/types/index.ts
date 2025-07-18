@@ -40,6 +40,7 @@ export interface TeamRoundScore {
   speedScore: number;
   qualityScore: number;
   totalScore: number;
+  showedPhysically?: boolean; // Add this
 }
 
 export interface GameResults {
@@ -82,7 +83,7 @@ export interface GameContextType {
   submitResponse: (teamId: string, playerId: string) => void;
   setPlayerSelection: (playerId: string, selectedScripture: number | null, teamResponse: string) => void;
   setQualityScore: (teamId: string, score: number) => void;
-  setTeamRoundScore: (teamId: string, roundNumber: number, speedScore: number, qualityScore: number) => void;
+  setTeamRoundScore: (teamId: string, roundNumber: number, speedScore: number, qualityScore: number, showedPhysically?: boolean) => void;
   clearRoundScores: (roundNumber: number) => void;
   calculateRoundResults: () => void;
   endGame: () => void;
