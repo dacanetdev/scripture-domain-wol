@@ -409,7 +409,8 @@ io.on('connection', (socket) => {
         if (game.state === 'finished') return;
         const currentScenario = game.shuffledScenarios[game.currentRound - 1];
         if (!game.rounds) game.rounds = [];
-        if (currentScenario && !game.rounds.find(r => r.key === currentScenario.key)) {
+        // Add the current scenario to rounds if it's not already there
+        if (currentScenario && !game.rounds.includes(currentScenario)) {
           game.rounds.push(currentScenario);
         }
         const updatedGame = updateGame(gameId, {
@@ -448,7 +449,8 @@ io.on('connection', (socket) => {
           timestamp: Date.now(),
           speedScore: 0,
           qualityScore: 0,
-          playerName
+          playerName,
+          roundNumber: game.currentRound // Add current round number
         };
         const updatedResponses = [...game.responses, newResponse];
         const updatedGame = updateGame(gameId, { responses: updatedResponses });

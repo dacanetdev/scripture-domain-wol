@@ -89,11 +89,17 @@ const ResultsScreen: React.FC = () => {
   // Calculate final rankings
   const teamRankings = (data?.teams || [])
     .filter((team: any) => team && team.id !== 'admin' && team.id !== 'viewer')
-    .map((team: any) => ({
-      ...team,
-      totalScore: (data?.gameResults?.[team.id]) || 0,
-      responseCount: (data?.responses || []).filter((r: any) => r && r.teamId === team.id).length
-    }))
+    .map((team: any) => {
+      // Calculate total score from teamRoundScores
+      const teamScores = (data?.teamRoundScores || []).filter((s: any) => s.teamId === team.id);
+      const totalScore = teamScores.reduce((sum: number, s: any) => sum + (s.totalScore || 0), 0);
+      
+      return {
+        ...team,
+        totalScore,
+        responseCount: (data?.responses || []).filter((r: any) => r && r.teamId === team.id).length
+      };
+    })
     .sort((a: any, b: any) => b.totalScore - a.totalScore);
 
   const winner = teamRankings[0];
@@ -269,7 +275,7 @@ Generado el ${new Date().toLocaleDateString()}`;
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-800">
-                {Math.round((data?.responses || []).length / (data?.scenarios || []).length)}
+                {rounds.length > 0 ? Math.round((data?.responses || []).length / rounds.length) : 0}
               </div>
               <div className="text-gray-500">Prom/ronda</div>
             </div>

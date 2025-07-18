@@ -25,6 +25,7 @@ export interface Response {
   speedScore: number;
   qualityScore: number;
   playerName?: string;
+  roundNumber?: number; // Add round number
 }
 
 export interface RoundResult {
